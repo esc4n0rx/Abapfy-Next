@@ -11,9 +11,10 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, size = 'lg' }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -37,6 +38,14 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-4xl',
+    xl: 'max-w-6xl',
+    '2xl': 'max-w-7xl',
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -53,26 +62,31 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-card rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden"
+            className={`relative bg-white rounded-xl shadow-2xl ${sizeClasses[size]} w-full max-h-[90vh] flex flex-col overflow-hidden`}
           >
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-text">{title}</h2>
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onClose}
-                className="p-1 h-8 w-8"
+                className="p-1 h-8 w-8 text-gray-400 hover:text-gray-600"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              {children}
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6">
+                {children}
+              </div>
             </div>
             
+            {/* Footer */}
             {footer && (
-              <div className="flex justify-end gap-3 p-6 border-t border-border bg-gray-50">
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
                 {footer}
               </div>
             )}

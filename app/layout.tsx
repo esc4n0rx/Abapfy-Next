@@ -1,9 +1,9 @@
-// app/layout.tsx
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ProvidersProvider } from '@/contexts/ProvidersContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,7 +22,9 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={inter.className}>
         <AuthProvider>
-          <PageWrapper>{children}</PageWrapper>
+          <ProvidersProvider>
+            <PageWrapper>{children}</PageWrapper>
+          </ProvidersProvider>
         </AuthProvider>
       </body>
     </html>

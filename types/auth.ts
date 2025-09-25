@@ -9,6 +9,18 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
+  // Adicionado para providers
+  providerSettings?: {
+    groq?: {
+      apiKey?: string;
+      defaultModel?: string;
+      isEnabled?: boolean;
+    };
+    arcee?: {
+      apiKey?: string;
+      isEnabled?: boolean;
+    };
+  };
 }
 
 export interface AuthState {
