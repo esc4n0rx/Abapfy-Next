@@ -1,7 +1,11 @@
 // lib/orchestrator.ts
 import { ABAPPrompts, PromptContext } from '@/lib/prompts';
 import { ChatMessage, ProviderResponse, ProviderType } from '@/types/providers';
-
+import { CodeProcessor } from '@/lib/utils/codeProcessor';
+import { GroqProvider } from '@/lib/providers/groq';
+import { ArceeProvider } from '@/lib/providers/arcee';
+import { supabaseAdmin } from '@/lib/supabase';
+import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 
 export interface GenerationRequest {
@@ -25,10 +29,21 @@ export class AIOrchestrator {
    */
   static async generateModule(request: GenerationRequest): Promise<GenerationResult> {
     try {
-      // 1. Gerar prompt baseado no contexto
+      // 1. Verificar autenticação
+      const token = request.request.cookies.get('auth-token')?.value;
+      if (!token) {
+        return {
+          success: false,
+          error: 'Token não encontrado'
+        };
+      }
+
+      const decoded = verifyToken(token);
+
+      // 2. Gerar prompt baseado no contexto
       const promptData = ABAPPrompts.getPrompt(request.context);
 
-      // 2. Preparar mensagens para o chat
+      // 3. Preparar mensagens para o chat
       const messages: ChatMessage[] = [
         {
           role: 'system',
@@ -40,7 +55,7 @@ export class AIOrchestrator {
         }
       ];
 
-      // 3. Tentar providers em ordem de preferência
+      // 4. Tentar providers em ordem de preferência
       const providers = this.getProviderPriority(request.providerPreference);
       
       for (const provider of providers) {
@@ -52,14 +67,34 @@ export class AIOrchestrator {
               temperature: promptData.temperature,
               maxTokens: promptData.maxTokens,
             },
-            request.request
+            decoded.userId
           );
 
-          if (result.success) {
-            return result;
+          if (result.success && result.code) {
+            // Processar e limpar o código antes de retornar
+            const cleanedCode = CodeProcessor.extractABAPCode(result.code);
+            
+            // Validar se o código limpo é válido
+            const validation = CodeProcessor.validateABAPCode(cleanedCode);
+            
+            if (!validation.isValid) {
+              console.warn(`Código gerado possui problemas: ${validation.issues.join(', ')}`);
+            }
+
+            // Formatar o código
+            const formattedCode = CodeProcessor.formatABAPCode(cleanedCode);
+
+            // Registrar uso (fire and forget)
+            this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
+              .catch(console.error);
+
+            return {
+              ...result,
+              code: formattedCode
+            };
           }
-        } catch (error) {
-          console.warn(`Provider ${provider} failed:`, error);
+        } catch (error: any) {
+          console.warn(`Provider ${provider} failed:`, error.message);
           continue;
         }
       }
@@ -70,6 +105,7 @@ export class AIOrchestrator {
       };
 
     } catch (error: any) {
+      console.error('Erro na geração:', error);
       return {
         success: false,
         error: `Erro na geração: ${error.message}`
@@ -83,6 +119,7 @@ export class AIOrchestrator {
   static async analyzeCode(
     code: string, 
     analysisType: 'debug' | 'review',
+    userId: string,
     providerPreference?: ProviderType
   ): Promise<GenerationResult> {
     try {
@@ -110,23 +147,27 @@ export class AIOrchestrator {
             messages,
             {
               temperature: promptData.temperature,
-              maxTokens: promptData.maxTokens
+              maxTokens: promptData.maxTokens,
             },
-            undefined as unknown as NextRequest
+            userId
           );
 
           if (result.success) {
+            // Registrar uso
+            this.logUsage(userId, provider, result.model, result.tokensUsed || 0)
+              .catch(console.error);
+
             return result;
           }
-        } catch (error) {
-          console.warn(`Provider ${provider} failed:`, error);
+        } catch (error: any) {
+          console.warn(`Provider ${provider} failed:`, error.message);
           continue;
         }
       }
 
       return {
         success: false,
-        error: 'Nenhum provider de IA disponível para análise'
+        error: 'Nenhum provider de IA disponível'
       };
 
     } catch (error: any) {
@@ -137,89 +178,114 @@ export class AIOrchestrator {
     }
   }
 
-  private static async tryProvider(
-    provider: ProviderType,
-    messages: ChatMessage[],
-    options: any,
-    request: NextRequest
-  ): Promise<GenerationResult> {
-    // TODO: Trocar para uma variável de ambiente em produção
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/providers/${provider}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        cookie: request.headers.get('cookie') ?? '',
-      },
-      body: JSON.stringify({
-        messages,
-        ...options
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Provider ${provider} error`);
-    }
-
-    const data: ProviderResponse = await response.json();
-
-    return {
-      success: true,
-      code: data.content,
-      provider: data.provider,
-      model: data.model,
-      tokensUsed: data.tokensUsed
-    };
-  }
-
   /**
-   * Define a prioridade dos providers baseada na preferência e disponibilidade
+   * Define a ordem de prioridade dos providers
    */
   private static getProviderPriority(preference?: ProviderType): ProviderType[] {
     const allProviders: ProviderType[] = ['groq', 'arcee'];
     
     if (preference && allProviders.includes(preference)) {
-      // Colocar preferência primeiro, outros depois
       return [preference, ...allProviders.filter(p => p !== preference)];
     }
-
-    // Ordem padrão: Groq primeiro (gratuito), depois Arcee
-    return allProviders;
+    
+    // Priorizar Groq por ser mais rápido e barato
+    return ['groq', 'arcee'];
   }
 
   /**
-   * Verifica quais providers estão disponíveis
+   * Tenta usar um provider específico
    */
-  static async getAvailableProviders(): Promise<{
-    provider: ProviderType;
-    name: string;
-    available: boolean;
-    model?: string;
-  }[]> {
+  private static async tryProvider(
+    provider: ProviderType,
+    messages: ChatMessage[],
+    options: { temperature: number; maxTokens: number },
+    userId: string
+  ): Promise<GenerationResult> {
     try {
-      // TODO: Trocar para uma variável de ambiente em produção
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/api/providers/settings`, {
-        credentials: 'include'
-      });
+      // Buscar configurações do provider para o usuário
+      const { data: settings } = await supabaseAdmin
+        .from('user_provider_settings')
+        .select('api_key, is_enabled')
+        .eq('user_id', userId)
+        .eq('provider', provider)
+        .single();
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.providers.map((p: any) => ({
-          provider: p.type,
-          name: p.name,
-          available: p.isEnabled && !!p.apiKey,
-          model: p.defaultModel
-        }));
+      if (!settings || !settings.is_enabled || !settings.api_key) {
+        throw new Error(`Provider ${provider} não configurado ou desabilitado`);
       }
-    } catch (error) {
-      console.error('Error fetching providers:', error);
-    }
 
-    return [
-      { provider: 'groq', name: 'Groq', available: false },
-      { provider: 'arcee', name: 'Arcee', available: false }
-    ];
+      let providerInstance;
+      let response: ProviderResponse;
+
+      switch (provider) {
+        case 'groq':
+          providerInstance = new GroqProvider(settings.api_key);
+          response = await providerInstance.chat(messages, undefined, {
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          });
+          break;
+
+        case 'arcee':
+          providerInstance = new ArceeProvider(settings.api_key);
+          response = await providerInstance.chat(messages, 'auto', {
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          });
+          break;
+
+        default:
+          throw new Error(`Provider ${provider} não suportado`);
+      }
+
+      return {
+        success: true,
+        code: response.content,
+        provider,
+        model: response.model,
+        tokensUsed: response.tokensUsed,
+      };
+
+    } catch (error: any) {
+      throw new Error(`Erro no provider ${provider}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Registra o uso do provider para estatísticas
+   */
+  private static async logUsage(
+    userId: string, 
+    provider: ProviderType, 
+    model: string | undefined, 
+    tokensUsed: number
+  ): Promise<void> {
+    try {
+      let costCents = 0;
+
+      // Calcular custo baseado no provider e modelo
+      if (provider === 'groq') {
+        // Groq é muito barato: ~$0.0001 por request
+        costCents = 0.01;
+      } else if (provider === 'arcee') {
+        // Arcee: ~$0.005672 por request
+        costCents = 0.57;
+      }
+
+      await supabaseAdmin
+        .from('provider_usage_logs')
+        .insert({
+          user_id: userId,
+          provider,
+          model: model || 'unknown',
+          tokens_used: tokensUsed,
+          cost_cents: costCents,
+          created_at: new Date().toISOString()
+        });
+
+    } catch (error) {
+      console.error('Erro ao registrar uso do provider:', error);
+      // Não propagar o erro para não afetar a funcionalidade principal
+    }
   }
 }

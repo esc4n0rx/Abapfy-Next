@@ -25,6 +25,12 @@ REGRAS FUNDAMENTAIS:
 - Código deve ser comentado em português
 - Aplique princípios de Clean Code
 - Use classes locais ao invés de PERFORM quando possível
+
+FORMATO DE RESPOSTA OBRIGATÓRIO:
+- Retorne APENAS código ABAP puro, sem explicações
+- Sem texto introdutório ou conclusão
+- Sem formatação markdown além do código
+- Código completo e funcional pronto para ativação
 `;
 
   static getPrompt(context: PromptContext): GeneratedPrompt {
@@ -41,8 +47,6 @@ REGRAS FUNDAMENTAIS:
         return this.getUserExitPrompt(context);
       case 'badi_implementation':
         return this.getBAdIPrompt(context);
-      case 'report':
-        return this.getReportPrompt(context);
       case 'cds_view':
         return this.getCDSViewPrompt(context);
       case 'interface':
@@ -60,8 +64,8 @@ REGRAS FUNDAMENTAIS:
 
 TAREFA ESPECÍFICA: Criar um módulo de função ABAP completo e funcional.
 
-ESTRUTURA OBRIGATÓRIA:
-1. Cabeçalho com documentação
+ESTRUTURA OBRIGATÓRIA DO MÓDULO:
+1. Cabeçalho com documentação completa
 2. Definição de parâmetros (IMPORTING, EXPORTING, CHANGING, TABLES)
 3. Declarações de dados locais
 4. Validações de entrada (Fail-Fast)
@@ -69,16 +73,15 @@ ESTRUTURA OBRIGATÓRIA:
 6. Tratamento de exceções
 7. Retorno de dados
 
-FORMATO DE SAÍDA:
-- Forneça APENAS o código ABAP puro
-- Código completo e pronto para ativação
-- Sem explicações externas`,
+IMPORTANTE: Retorne SOMENTE o código ABAP do módulo de função, sem nenhuma explicação adicional.`,
       
       userPrompt: `Crie um módulo de função ABAP com a seguinte especificação:
 
 ${context.description}
 
-O módulo deve seguir todas as melhores práticas de ABAP moderno e incluir tratamento robusto de erros.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo do módulo de função.`,
       
       temperature: 0.3,
       maxTokens: 4000
@@ -93,16 +96,20 @@ TAREFA ESPECÍFICA: Criar um método de classe ABAP moderno.
 
 DIRETRIZES PARA MÉTODOS:
 - Use RETURNING quando há apenas um parâmetro de saída
-- Implemente validações no início (Fail-Fast)
+- Implemente validações no início (Fail-Fast)  
 - Use sintaxe funcional quando possível
 - Métodos devem ter responsabilidade única
-- Documente parâmetros e exceções no cabeçalho`,
+- Documente parâmetros e exceções no cabeçalho
+
+IMPORTANTE: Retorne SOMENTE o código ABAP do método, sem explicações.`,
       
       userPrompt: `Crie um método de classe ABAP com a seguinte especificação:
 
 ${context.description}
 
-O método deve ser moderno, eficiente e seguir o princípio da responsabilidade única.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo do método.`,
       
       temperature: 0.4,
       maxTokens: 3000
@@ -114,15 +121,18 @@ O método deve ser moderno, eficiente e seguir o princípio da responsabilidade 
       systemPrompt: `${this.BASE_SYSTEM_PROMPT}
 
 NOTA IMPORTANTE: Subroutines (PERFORM) são consideradas práticas obsoletas no ABAP moderno. 
-Recomende o uso de métodos de classe sempre que possível.
 
-TAREFA ESPECÍFICA: Criar uma subroutine ABAP (apenas se estritamente necessário para compatibilidade).`,
+TAREFA ESPECÍFICA: Criar uma subroutine ABAP (apenas se estritamente necessário).
+
+IMPORTANTE: Retorne SOMENTE o código ABAP da subroutine, incluindo comentários sobre alternativas modernas.`,
       
       userPrompt: `Crie uma subroutine ABAP com a seguinte especificação:
 
 ${context.description}
 
-IMPORTANTE: Inclua comentários explicando por que uma classe/método seria uma alternativa melhor.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP da subroutine com comentários sobre melhores práticas.`,
       
       temperature: 0.3,
       maxTokens: 2500
@@ -140,13 +150,16 @@ CONSIDERAÇÕES PARA USER EXITS:
 - Implementar apenas a lógica necessária
 - Não modificar dados padrão sem necessidade
 - Documentar o propósito da modificação
-- Considerar impactos em upgrades`,
+
+IMPORTANTE: Retorne SOMENTE o código ABAP do User Exit.`,
       
       userPrompt: `Implemente um User Exit SAP com a seguinte especificação:
 
 ${context.description}
 
-Inclua comentários sobre o impacto da implementação e melhores práticas.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo do User Exit.`,
       
       temperature: 0.2,
       maxTokens: 3500
@@ -160,45 +173,23 @@ Inclua comentários sobre o impacto da implementação e melhores práticas.`,
 TAREFA ESPECÍFICA: Implementar uma BAdI (Business Add-In).
 
 ESTRUTURA PARA BADI:
-1. Identificação da interface da BAdI
-2. Implementação da classe
-3. Implementação dos métodos da interface
-4. Configuração necessária (se aplicável)
-5. Testes e validações`,
+1. Implementação da classe
+2. Implementação dos métodos da interface
+3. Configuração necessária (comentários)
+4. Validações e tratamentos
+
+IMPORTANTE: Retorne SOMENTE o código ABAP da implementação BAdI.`,
       
       userPrompt: `Crie uma implementação de BAdI com a seguinte especificação:
 
 ${context.description}
 
-Inclua a implementação completa da classe e métodos necessários.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo da implementação BAdI.`,
       
       temperature: 0.3,
       maxTokens: 4000
-    };
-  }
-
-  private static getReportPrompt(context: PromptContext): GeneratedPrompt {
-    return {
-      systemPrompt: `${this.BASE_SYSTEM_PROMPT}
-
-TAREFA ESPECÍFICA: Criar um programa ABAP (REPORT) completo.
-
-ESTRUTURA OBRIGATÓRIA:
-1. Cabeçalho do programa
-2. Declarações de tipos e dados globais
-3. Tela de seleção (PARAMETERS/SELECT-OPTIONS)
-4. Classes locais para a lógica
-5. Eventos (INITIALIZATION, AT SELECTION-SCREEN, START-OF-SELECTION)
-6. Apenas instanciar classe principal no START-OF-SELECTION`,
-      
-      userPrompt: `Crie um programa ABAP (REPORT) completo com a seguinte especificação:
-
-${context.description}
-
-O programa deve usar classes locais e sintaxe moderna ABAP.`,
-      
-      temperature: 0.4,
-      maxTokens: 5000
     };
   }
 
@@ -214,13 +205,16 @@ ELEMENTOS DE CDS VIEW:
 - Joins otimizados quando necessário
 - Campos calculados usando CASE/CAST
 - Filtros e condições WHERE adequadas
-- Associações quando aplicável`,
+
+IMPORTANTE: Retorne SOMENTE o código da CDS View.`,
       
       userPrompt: `Crie uma CDS View com a seguinte especificação:
 
 ${context.description}
 
-Inclua anotações apropriadas e otimizações de performance.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código completo da CDS View.`,
       
       temperature: 0.3,
       maxTokens: 3000
@@ -238,13 +232,17 @@ PRINCÍPIOS PARA INTERFACES:
 - Parâmetros bem definidos e tipados
 - Exceções apropriadas
 - Documentação completa
-- Seguir princípios SOLID`,
+- Seguir princípios SOLID
+
+IMPORTANTE: Retorne SOMENTE o código ABAP da definição da interface.`,
       
       userPrompt: `Defina uma interface ABAP com a seguinte especificação:
 
 ${context.description}
 
-A interface deve ser bem estruturada e seguir boas práticas de design.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo da interface.`,
       
       temperature: 0.3,
       maxTokens: 2500
@@ -263,13 +261,17 @@ ESTRUTURA DE CLASSE:
 3. Métodos com assinaturas claras
 4. Construtor se necessário
 5. Implementação de todos os métodos
-6. Tratamento de exceções apropriado`,
+6. Tratamento de exceções apropriado
+
+IMPORTANTE: Retorne SOMENTE o código ABAP da classe completa.`,
       
       userPrompt: `Crie uma classe ABAP completa (definição e implementação) com a seguinte especificação:
 
 ${context.description}
 
-A classe deve seguir princípios SOLID e usar ABAP moderno.`,
+${context.additionalContext ? `Contexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo da classe.`,
       
       temperature: 0.4,
       maxTokens: 4500
@@ -278,13 +280,17 @@ A classe deve seguir princípios SOLID e usar ABAP moderno.`,
 
   private static getGenericPrompt(context: PromptContext): GeneratedPrompt {
     return {
-      systemPrompt: this.BASE_SYSTEM_PROMPT,
+      systemPrompt: `${this.BASE_SYSTEM_PROMPT}
+
+IMPORTANTE: Retorne SOMENTE código ABAP puro, sem explicações.`,
       userPrompt: `Crie código ABAP com a seguinte especificação:
 
 ${context.description}
 
 Tipo: ${context.moduleType}
-${context.additionalContext ? `\nContexto adicional: ${context.additionalContext}` : ''}`,
+${context.additionalContext ? `\nContexto adicional: ${context.additionalContext}` : ''}
+
+Retorne apenas o código ABAP completo.`,
       temperature: 0.4,
       maxTokens: 4000
     };
@@ -379,13 +385,6 @@ export const MODULE_TYPES = [
     description: 'Definição de um contrato de interface',
     icon: '🔌',
     category: 'Orientação a Objetos'
-  },
-  {
-    id: 'report',
-    name: 'Programa/Report',
-    description: 'Programa ABAP executável completo',
-    icon: '📊',
-    category: 'Programas'
   },
   {
     id: 'cds_view',
