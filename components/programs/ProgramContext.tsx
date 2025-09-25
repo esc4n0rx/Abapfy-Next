@@ -253,7 +253,7 @@ export function ProgramContext({
               <Badge 
                 key={index} 
                 variant="outline" 
-                className="flex items-center space-x-1"
+                className="text-black flex items-center space-x-1"
               >
                 <span>{module}</span>
                 <X 

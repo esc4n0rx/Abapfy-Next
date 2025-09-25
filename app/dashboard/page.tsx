@@ -89,7 +89,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              <Badge variant="outline" className="px-3 py-1">
+              <Badge variant="outline" className="text-black px-3 py-1">
                 {user?.role === 'admin' ? 'Administrador' : 'Desenvolvedor'}
               </Badge>
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>

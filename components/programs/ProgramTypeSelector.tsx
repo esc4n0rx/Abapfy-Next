@@ -109,12 +109,12 @@ export function ProgramTypeSelector({
                 {programType.description}
               </p>
               <div className="flex justify-center space-x-2">
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-black text-xs">
                   {programType.category}
                 </Badge>
                 <Badge 
                   variant="outline" 
-                  className={`text-xs ${getComplexityColor(programType.complexity)}`}
+                  className={`text-black text-xs ${getComplexityColor(programType.complexity)}`}
                 >
                   {getComplexityLabel(programType.complexity)}
                 </Badge>

@@ -147,7 +147,7 @@ export function RecentModules({ onModuleSelect }: RecentModulesProps) {
                   <h4 className="font-medium text-gray-900 truncate">
                     {module.name}
                   </h4>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-black text-xs">
                     {module.type}
                   </Badge>
                   {module.metadata.provider && (

@@ -313,7 +313,7 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
               {programContext.tables && programContext.tables.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-300">
                   <span className="font-medium text-gray-700">Tabelas:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="text-black flex flex-wrap gap-1 mt-1">
                     {programContext.tables.map((table, idx) => (
                       <Badge key={idx} variant="outline" className="text-xs">
                         {table}

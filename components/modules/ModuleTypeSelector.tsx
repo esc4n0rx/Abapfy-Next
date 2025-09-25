@@ -74,7 +74,7 @@ export function ModuleTypeSelector({ selectedType, onTypeSelect, onNext }: Modul
                   {moduleType.description}
                 </p>
                 <div className="mt-2">
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className=" text-gray-600 text-xs">
                     {moduleType.category}
                   </Badge>
                 </div>
