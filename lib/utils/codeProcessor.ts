@@ -10,176 +10,186 @@ export class CodeProcessor {
    * Remove tags <think>, explicações e outros textos indesejados
    */
   static extractABAPCode(rawResponse: string): string {
+    if (!rawResponse || rawResponse.trim().length === 0) {
+      console.warn('CodeProcessor: Resposta vazia ou inválida');
+      return '';
+    }
+
     let cleanedCode = rawResponse;
 
     // 1. Remover tags <think> e seu conteúdo
     cleanedCode = cleanedCode.replace(/<think>[\s\S]*?<\/think>/gi, '');
 
-    // 2. Remover blocos de markdown que não sejam código
-    cleanedCode = cleanedCode.replace(/```(?!abap)[\s\S]*?```/gi, '');
-
-    // 3. Extrair apenas blocos de código ABAP
+    // 2. Verificar se há blocos de código ABAP específicos
     const abapBlocks = [];
     const abapCodeRegex = /```abap\s*([\s\S]*?)```/gi;
     let match;
     
     while ((match = abapCodeRegex.exec(cleanedCode)) !== null) {
-      abapBlocks.push(match[1].trim());
+      const codeBlock = match[1].trim();
+      if (codeBlock.length > 0) {
+        abapBlocks.push(codeBlock);
+      }
     }
 
     // Se encontrou blocos ABAP específicos, usar apenas eles
     if (abapBlocks.length > 0) {
       cleanedCode = abapBlocks.join('\n\n');
     } else {
-      // Senão, tentar remover markdown genérico
-      cleanedCode = cleanedCode.replace(/```[\s\S]*?```/gi, (match) => {
-        return match.replace(/```\w*\n?/, '').replace(/```$/, '');
-      });
+      // Tentar extrair código de blocos markdown genéricos
+      const genericCodeRegex = /```[\s\S]*?\n([\s\S]*?)```/gi;
+      const genericBlocks = [];
+      
+      while ((match = genericCodeRegex.exec(cleanedCode)) !== null) {
+        const codeBlock = match[1].trim();
+        if (codeBlock.length > 0 && this.isLikelyABAPCode(codeBlock)) {
+          genericBlocks.push(codeBlock);
+        }
+      }
+      
+      if (genericBlocks.length > 0) {
+        cleanedCode = genericBlocks.join('\n\n');
+      } else {
+        // Se não há blocos de código, remover apenas tags markdown, preservando o conteúdo
+        cleanedCode = cleanedCode.replace(/```[\w]*\n?/g, '').replace(/```$/g, '');
+      }
     }
 
-    // 4. Remover linhas que são claramente explicações/comentários não-ABAP
-    const lines = cleanedCode.split('\n');
-    const filteredLines = lines.filter(line => {
-      const trimmed = line.trim();
-      
-      // Manter linhas vazias para formatação
-      if (!trimmed) return true;
-      
-      // Manter comentários ABAP (começam com *)
-      if (trimmed.startsWith('*')) return true;
-      
-      // Manter código ABAP (palavras-chave conhecidas)
-      const abapKeywords = [
-        'FUNCTION', 'ENDFUNCTION', 'METHOD', 'ENDMETHOD', 'CLASS', 'ENDCLASS',
-        'DATA', 'TYPES', 'CONSTANTS', 'FIELD-SYMBOLS', 'PARAMETERS', 'SELECT-OPTIONS',
-        'IF', 'ENDIF', 'ELSE', 'ELSEIF', 'CASE', 'ENDCASE', 'WHEN', 'OTHERWISE',
-        'LOOP', 'ENDLOOP', 'DO', 'ENDDO', 'WHILE', 'ENDWHILE', 'TRY', 'ENDTRY',
-        'CATCH', 'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'MODIFY', 'COMMIT', 'ROLLBACK',
-        'FORM', 'ENDFORM', 'PERFORM', 'REPORT', 'PROGRAM', 'INTERFACE', 'ENDINTERFACE',
-        'IMPORTING', 'EXPORTING', 'CHANGING', 'TABLES', 'RETURNING', 'EXCEPTIONS',
-        'PUBLIC', 'PRIVATE', 'PROTECTED', 'SECTION', 'DEFINITION', 'IMPLEMENTATION',
-        'VALUE', 'CONV', 'COND', 'SWITCH', 'LET', 'FOR', 'IN', 'WHERE'
-      ];
-      
-      const hasABAPKeyword = abapKeywords.some(keyword => 
-        trimmed.toUpperCase().includes(keyword)
-      );
-      
-      // Remover linhas que parecem explicações em português/inglês
-      const isExplanation = (
-        trimmed.toLowerCase().includes('exemplo:') ||
-        trimmed.toLowerCase().includes('explicação:') ||
-        trimmed.toLowerCase().includes('description:') ||
-        trimmed.toLowerCase().includes('note:') ||
-        trimmed.toLowerCase().includes('observação:') ||
-        (trimmed.length > 100 && !hasABAPKeyword) // Linhas muito longas sem palavras-chave ABAP
-      );
-      
-      return hasABAPKeyword || !isExplanation;
-    });
+    // 4. Remover explicações no início e fim, mas preservar comentários ABAP
+    cleanedCode = this.removeNonABAPExplanations(cleanedCode);
 
-    cleanedCode = filteredLines.join('\n');
+    // 5. Remover múltiplas linhas em branco consecutivas
+    cleanedCode = cleanedCode.replace(/\n\s*\n\s*\n/g, '\n\n');
 
-    // 5. Limpar espaços excessivos e normalizar
-    cleanedCode = cleanedCode
-      .replace(/\n{3,}/g, '\n\n') // Máximo 2 quebras de linha consecutivas
-      .trim();
+    // 6. Trim final preservando estrutura
+    cleanedCode = cleanedCode.trim();
 
-    // 6. Validar se o código resultante tem pelo menos uma estrutura ABAP básica
-    const hasBasicStructure = /(?:FUNCTION|METHOD|CLASS|FORM|REPORT)/i.test(cleanedCode);
-    
-    if (!hasBasicStructure && cleanedCode.length > 0) {
-      // Se não tem estrutura básica, assumir que é código inline e manter tudo
-      return cleanedCode;
+    if (cleanedCode.length === 0) {
+      console.warn('CodeProcessor: Código resultante está vazio após processamento');
     }
 
     return cleanedCode;
   }
 
   /**
-   * Valida se o código ABAP parece válido
+   * Verifica se o conteúdo parece ser código ABAP
    */
-  static validateABAPCode(code: string): { isValid: boolean; issues: string[] } {
-    const issues: string[] = [];
-    
-    if (!code || code.trim().length === 0) {
-      issues.push('Código vazio');
-      return { isValid: false, issues };
-    }
-
-    // Verificar balanceamento básico de estruturas
-    const structures = [
-      { open: /\bFUNCTION\b/gi, close: /\bENDFUNCTION\b/gi, name: 'FUNCTION' },
-      { open: /\bMETHOD\b/gi, close: /\bENDMETHOD\b/gi, name: 'METHOD' },
-      { open: /\bCLASS\b.*\bDEFINITION\b/gi, close: /\bENDCLASS\b/gi, name: 'CLASS' },
-      { open: /\bIF\b/gi, close: /\bENDIF\b/gi, name: 'IF' },
-      { open: /\bLOOP\b/gi, close: /\bENDLOOP\b/gi, name: 'LOOP' },
-      { open: /\bTRY\b/gi, close: /\bENDTRY\b/gi, name: 'TRY' },
+  private static isLikelyABAPCode(content: string): boolean {
+    const abapKeywords = [
+      'REPORT', 'PROGRAM', 'DATA:', 'SELECT', 'FROM', 'WHERE', 'INTO',
+      'FORM', 'ENDFORM', 'PERFORM', 'FUNCTION', 'ENDFUNCTION',
+      'CLASS', 'ENDCLASS', 'METHOD', 'ENDMETHOD', 'TYPE', 'TABLES:',
+      'PARAMETERS:', 'SELECT-OPTIONS:', 'START-OF-SELECTION',
+      'END-OF-SELECTION', 'INITIALIZATION', 'AT SELECTION-SCREEN'
     ];
-
-    structures.forEach(({ open, close, name }) => {
-      const openCount = (code.match(open) || []).length;
-      const closeCount = (code.match(close) || []).length;
-      
-      if (openCount !== closeCount) {
-        issues.push(`Estrutura ${name} desbalanceada: ${openCount} aberturas, ${closeCount} fechamentos`);
-      }
-    });
-
-    return {
-      isValid: issues.length === 0,
-      issues
-    };
+    
+    const upperContent = content.toUpperCase();
+    return abapKeywords.some(keyword => upperContent.includes(keyword));
   }
 
   /**
-   * Formata o código ABAP com indentação básica
+   * Remove explicações em português/inglês mas preserva comentários ABAP
    */
-  static formatABAPCode(code: string): string {
-    const lines = code.split('\n');
-    const formatted: string[] = [];
-    let indentLevel = 0;
+  private static removeNonABAPExplanations(content: string): string {
+    const lines = content.split('\n');
+    const filteredLines = [];
+    let insideABAPBlock = false;
 
-    const increaseIndent = [
-      /^\s*FUNCTION\b/i, /^\s*METHOD\b/i, /^\s*CLASS\b.*DEFINITION/i, 
-      /^\s*CLASS\b.*IMPLEMENTATION/i, /^\s*IF\b/i, /^\s*ELSE/i, /^\s*ELSEIF\b/i,
-      /^\s*LOOP\b/i, /^\s*DO\b/i, /^\s*WHILE\b/i, /^\s*TRY\b/i, /^\s*CATCH\b/i,
-      /^\s*FORM\b/i, /^\s*CASE\b/i, /^\s*WHEN\b/i, /^\s*PUBLIC\s+SECTION/i,
-      /^\s*PRIVATE\s+SECTION/i, /^\s*PROTECTED\s+SECTION/i
-    ];
-
-    const decreaseIndent = [
-      /^\s*ENDFUNCTION/i, /^\s*ENDMETHOD/i, /^\s*ENDCLASS/i, /^\s*ENDIF/i,
-      /^\s*ENDLOOP/i, /^\s*ENDDO/i, /^\s*ENDWHILE/i, /^\s*ENDTRY/i,
-      /^\s*ENDFORM/i, /^\s*ENDCASE/i, /^\s*ELSE/i, /^\s*ELSEIF\b/i,
-      /^\s*WHEN\b/i, /^\s*CATCH\b/i
-    ];
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
       
-      if (!trimmedLine) {
-        formatted.push('');
-        return;
+      // Se a linha contém código ABAP, marcar que estamos dentro de um bloco ABAP
+      if (this.isLikelyABAPCode(line)) {
+        insideABAPBlock = true;
       }
-
-      // Verificar se deve diminuir indentação antes da linha
-      const shouldDecrease = decreaseIndent.some(pattern => pattern.test(trimmedLine));
-      if (shouldDecrease && indentLevel > 0) {
-        indentLevel--;
+      
+      // Manter comentários ABAP (começam com *)
+      if (line.startsWith('*')) {
+        filteredLines.push(lines[i]);
+        continue;
       }
-
-      // Aplicar indentação
-      const indent = '  '.repeat(indentLevel);
-      formatted.push(indent + trimmedLine);
-
-      // Verificar se deve aumentar indentação após a linha
-      const shouldIncrease = increaseIndent.some(pattern => pattern.test(trimmedLine));
-      if (shouldIncrease) {
-        indentLevel++;
+      
+      // Se estamos dentro de um bloco ABAP, manter todas as linhas
+      if (insideABAPBlock) {
+        filteredLines.push(lines[i]);
+        continue;
       }
-    });
+      
+      // Antes do bloco ABAP, remover explicações em linguagem natural
+      if (line.length === 0) {
+        filteredLines.push(lines[i]);
+      } else if (!this.isNaturalLanguageExplanation(line)) {
+        filteredLines.push(lines[i]);
+      }
+    }
 
-    return formatted.join('\n');
+    return filteredLines.join('\n');
+  }
+
+  /**
+   * Detecta se uma linha é uma explicação em linguagem natural
+   */
+  private static isNaturalLanguageExplanation(line: string): boolean {
+    const naturalLanguagePatterns = [
+      /^(aqui está|este código|o programa|a seguir|primeiro|segundo|terceiro)/i,
+      /^(here is|this code|the program|following|first|second|third)/i,
+      /^(vamos|vou|iremos|devemos|podemos)/i,
+      /^(let's|we will|we should|we can)/i,
+      /[.!?]$/  // Termina com pontuação de frase
+    ];
+    
+    return naturalLanguagePatterns.some(pattern => pattern.test(line.trim()));
+  }
+
+  /**
+   * Valida se o código extraído é válido
+   */
+  static validateABAPCode(code: string): {
+    isValid: boolean;
+    warnings: string[];
+    errors: string[];
+  } {
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    
+    if (!code || code.trim().length === 0) {
+      errors.push('Código está vazio');
+      return { isValid: false, warnings, errors };
+    }
+    
+    const upperCode = code.toUpperCase();
+    
+    // Verificar se tem pelo menos um comando ABAP básico
+    const basicCommands = ['REPORT', 'PROGRAM', 'FUNCTION', 'CLASS', 'FORM'];
+    const hasBasicCommand = basicCommands.some(cmd => upperCode.includes(cmd));
+    
+    if (!hasBasicCommand) {
+      warnings.push('Código pode não ser um programa ABAP válido');
+    }
+    
+    // Verificar estruturas balanceadas
+    const structureChecks = [
+      { open: 'IF', close: 'ENDIF' },
+      { open: 'LOOP', close: 'ENDLOOP' },
+      { open: 'FORM', close: 'ENDFORM' },
+      { open: 'FUNCTION', close: 'ENDFUNCTION' },
+      { open: 'CLASS', close: 'ENDCLASS' },
+      { open: 'METHOD', close: 'ENDMETHOD' }
+    ];
+    
+    for (const structure of structureChecks) {
+      const openCount = (upperCode.match(new RegExp(`\\b${structure.open}\\b`, 'g')) || []).length;
+      const closeCount = (upperCode.match(new RegExp(`\\b${structure.close}\\b`, 'g')) || []).length;
+      
+      if (openCount !== closeCount) {
+        warnings.push(`Estrutura ${structure.open}/${structure.close} pode estar desbalanceada`);
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      warnings,
+      errors
+    };
   }
 }

@@ -79,11 +79,12 @@ export class AIOrchestrator {
             const validation = CodeProcessor.validateABAPCode(cleanedCode);
             
             if (!validation.isValid) {
-              console.warn(`Código gerado possui problemas: ${validation.issues.join(', ')}`);
+              console.warn(`Código gerado possui problemas: ${validation.errors.join(', ')}`);
             }
-
-            // Formatar o código
-            const formattedCode = CodeProcessor.formatABAPCode(cleanedCode);
+            
+            if (validation.warnings.length > 0) {
+              console.info(`Avisos sobre o código: ${validation.warnings.join(', ')}`);
+            }
 
             // Registrar uso (fire and forget)
             this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
@@ -91,7 +92,7 @@ export class AIOrchestrator {
 
             return {
               ...result,
-              code: formattedCode
+              code: cleanedCode // Usar código limpo diretamente (já processado)
             };
           }
         } catch (error: any) {
@@ -233,11 +234,12 @@ export class AIOrchestrator {
             const validation = CodeProcessor.validateABAPCode(cleanedCode);
             
             if (!validation.isValid) {
-              console.warn(`Código gerado possui problemas: ${validation.issues.join(', ')}`);
+              console.warn(`Código gerado possui problemas: ${validation.errors.join(', ')}`);
             }
-
-            // Formatar o código
-            const formattedCode = CodeProcessor.formatABAPCode(cleanedCode);
+            
+            if (validation.warnings.length > 0) {
+              console.info(`Avisos sobre o código: ${validation.warnings.join(', ')}`);
+            }
 
             // Registrar uso (fire and forget)
             this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
@@ -245,7 +247,7 @@ export class AIOrchestrator {
 
             return {
               ...result,
-              code: formattedCode
+              code: cleanedCode // Usar código limpo diretamente (já processado)
             };
           }
         } catch (error: any) {

@@ -113,12 +113,18 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      setSpecification(content);
-      
-      const extracted = extractDataFromSpec(content);
-      setExtractedData(extracted);
-      setIsProcessing(false);
+      try {
+        const content = e.target?.result as string;
+        setSpecification(content);
+        
+        const extracted = extractDataFromSpec(content);
+        setExtractedData(extracted);
+      } catch (error) {
+        console.error('Erro ao processar arquivo:', error);
+        alert('Erro ao processar o arquivo. Verifique o formato.');
+      } finally {
+        setIsProcessing(false);
+      }
     };
 
     reader.onerror = () => {
@@ -131,16 +137,29 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    e.stopPropagation();
+    
+    // Only set dragging to false if we're actually leaving the drag area
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (
+      e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom
+    ) {
+      setIsDragging(false);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
@@ -154,13 +173,17 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
     if (files && files.length > 0) {
       handleFileUpload(files[0]);
     }
+    // Reset input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = '';
   };
 
   const handleContinue = () => {
-    if (specification) {
+    if (specification && specification.trim().length > 0) {
       onSpecificationLoaded(specification, extractedData);
     }
   };
+
+  const canContinue = specification && specification.trim().length > 0 && !isProcessing;
 
   return (
     <div className="space-y-6">
@@ -186,17 +209,18 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
       {!uploadedFile && (
         <div
           className={`
-            border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
+            border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer
             ${isDragging 
               ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
             }
           `}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={() => document.getElementById('file-upload')?.click()}
         >
-          <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
           <h4 className="text-lg font-semibold text-gray-900 mb-2">
             Arraste e solte seu arquivo aqui
           </h4>
@@ -212,14 +236,17 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
             id="file-upload"
           />
           
-          <label htmlFor="file-upload">
-            <span>
-              <Button variant="secondary">
-                <FileText className="w-4 h-4 mr-2" />
-                Selecionar Arquivo
-              </Button>
-            </span>
-          </label>
+          <Button 
+            variant="secondary" 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              document.getElementById('file-upload')?.click();
+            }}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Selecionar Arquivo
+          </Button>
           
           <p className="text-xs text-gray-500 mt-4">
             Formatos aceitos: .txt (máximo 1MB)
@@ -246,52 +273,34 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
                   Arquivo carregado com sucesso!
                 </h4>
                 <p className="text-sm text-green-700">
-                  {uploadedFile.name} ({Math.round(uploadedFile.size / 1024)} KB)
+                  {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Extracted Data Preview */}
+          {/* Extracted Data Summary */}
           {Object.keys(extractedData).length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-3">
-                Dados Extraídos da Especificação
-              </h4>
+              <h4 className="font-semibold text-blue-900 mb-3">Informações Extraídas:</h4>
               <div className="space-y-2 text-sm">
                 {extractedData.name && (
-                  <div>
-                    <span className="font-medium text-blue-800">Nome:</span>
-                    <span className="ml-2 text-blue-700">{extractedData.name}</span>
-                  </div>
+                  <div><strong>Nome:</strong> {extractedData.name}</div>
                 )}
                 {extractedData.type && (
-                  <div>
-                    <span className="font-medium text-blue-800">Tipo:</span>
-                    <span className="ml-2 text-blue-700">{extractedData.type}</span>
-                  </div>
+                  <div><strong>Tipo:</strong> {extractedData.type}</div>
                 )}
                 {extractedData.description && (
-                  <div>
-                    <span className="font-medium text-blue-800">Descrição:</span>
-                    <span className="ml-2 text-blue-700">{extractedData.description}</span>
-                  </div>
+                  <div><strong>Descrição:</strong> {extractedData.description}</div>
                 )}
                 {extractedData.context?.tables && extractedData.context.tables.length > 0 && (
-                  <div>
-                    <span className="font-medium text-blue-800">Tabelas:</span>
-                    <span className="ml-2 text-blue-700">
-                      {extractedData.context.tables.join(', ')}
-                    </span>
-                  </div>
+                  <div><strong>Tabelas:</strong> {extractedData.context.tables.join(', ')}</div>
                 )}
                 {extractedData.context?.businessRules && extractedData.context.businessRules.length > 0 && (
-                  <div>
-                    <span className="font-medium text-blue-800">Regras:</span>
-                    <span className="ml-2 text-blue-700">
-                      {extractedData.context.businessRules.length} regra(s) identificada(s)
-                    </span>
-                  </div>
+                  <div><strong>Regras:</strong> {extractedData.context.businessRules.length} regra(s)</div>
+                )}
+                {extractedData.context?.modules && extractedData.context.modules.length > 0 && (
+                  <div><strong>Módulos:</strong> {extractedData.context.modules.join(', ')}</div>
                 )}
               </div>
             </div>
@@ -299,10 +308,8 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
 
           {/* Specification Preview */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-3">
-              Prévia da Especificação
-            </h4>
-            <pre className="text-sm text-gray-700 max-h-64 overflow-y-auto whitespace-pre-wrap bg-white p-3 rounded border">
+            <h4 className="font-semibold text-gray-900 mb-3">Preview da Especificação:</h4>
+            <pre className="text-xs bg-white p-3 rounded border max-h-48 overflow-y-auto whitespace-pre-wrap">
               {specification}
             </pre>
           </div>
@@ -319,7 +326,11 @@ export function ProgramSpecUpload({ onSpecificationLoaded, onBack }: ProgramSpec
             >
               Carregar Outro Arquivo
             </Button>
-            <Button onClick={handleContinue}>
+            <Button 
+              onClick={handleContinue}
+              disabled={!canContinue}
+              className={!canContinue ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               Continuar com Esta Especificação
             </Button>
           </div>
