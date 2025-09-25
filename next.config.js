@@ -1,10 +1,16 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  eslint: {
-    ignoreDuringBuilds: true,
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js']
   },
-  images: { unoptimized: true },
+  webpack: (config) => {
+    // Ignorar warnings do Supabase Realtime
+    config.ignoreWarnings = [
+      { module: /node_modules\/@supabase\/realtime-js/ },
+    ];
+    return config;
+  },
 };
 
 module.exports = nextConfig;

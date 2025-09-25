@@ -1,7 +1,9 @@
+// app/layout.tsx
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <PageWrapper>{children}</PageWrapper>
+        <AuthProvider>
+          <PageWrapper>{children}</PageWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

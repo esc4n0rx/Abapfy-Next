@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -6,75 +7,215 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert } from '@/components/ui/alert';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('dev@abapfy.com');
-  const [password, setPassword] = useState('password');
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, register, isLoading } = useAuth();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    company: '',
+    confirmPassword: ''
+  });
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setError('');
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      if (isRegisterMode) {
+        if (formData.password !== formData.confirmPassword) {
+          setError('As senhas não coincidem');
+          return;
+        }
+
+        await register({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          company: formData.company || undefined
+        });
+      } else {
+        await login({
+          email: formData.email,
+          password: formData.password
+        });
+      }
+
       router.push('/dashboard');
-    }, 1000);
+    } catch (error: any) {
+      setError(error.message);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="bg-card border border-border rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {/* Logo e Branding */}
           <div className="text-center mb-8">
-            <div className="inline-block p-3 bg-brand/10 rounded-xl mb-4">
-              <div className="w-10 h-10 bg-brand rounded flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
-              </div>
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
+              <span className="text-white font-bold text-2xl">A</span>
             </div>
-            <h1 className="text-3xl font-bold text-text">Bem-vindo ao Abapfy</h1>
-            <p className="text-subtle mt-2">Entre com suas credenciais para continuar</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {isRegisterMode ? 'Criar Conta' : 'Bem-vindo ao Abapfy'}
+            </h1>
+            <p className="text-gray-600">
+              {isRegisterMode 
+                ? 'Preencha os dados para criar sua conta' 
+                : 'Entre com suas credenciais para continuar'
+              }
+            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          {/* Alerts de Erro */}
+          {error && (
+            <div className="mb-6">
+              <Alert variant="destructive">
+                {error}
+              </Alert>
+            </div>
+          )}
+
+          {/* Formulário */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {isRegisterMode && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Nome</Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Sobrenome</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleInputChange}
                 required
                 disabled={isLoading}
               />
             </div>
+
+            {isRegisterMode && (
+              <div className="space-y-2">
+                <Label htmlFor="company">Empresa</Label>
+                <Input
+                  id="company"
+                  name="company"
+                  type="text"
+                  placeholder="Nome da sua empresa (opcional)"
+                  value={formData.company}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={handleInputChange}
                 required
                 disabled={isLoading}
               />
             </div>
 
+            {isRegisterMode && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? 'Processando...' : (isRegisterMode ? 'Criar Conta' : 'Entrar')}
             </Button>
           </form>
+
+          {/* Toggle entre Login e Registro */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setError('');
+                setFormData({
+                  email: '',
+                  password: '',
+                  firstName: '',
+                  lastName: '',
+                  company: '',
+                  confirmPassword: ''
+                });
+              }}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+              disabled={isLoading}
+            >
+              {isRegisterMode 
+                ? 'Já tem uma conta? Fazer login' 
+                : 'Não tem conta? Criar nova conta'
+              }
+            </button>
+          </div>
         </div>
-        
-        <p className="text-center text-subtle text-sm mt-8">
+        <p className="text-center text-gray-500 text-sm mt-8">
           © {new Date().getFullYear()} Abapfy. Todos os direitos reservados.
         </p>
       </motion.div>
