@@ -38,7 +38,7 @@ export function ModuleTypeSelector({ selectedType, onTypeSelect, onNext }: Modul
         {categories.map(category => (
           <Button
             key={category}
-            variant={selectedCategory === category ? 'primary' : 'secondary'}
+            variant={selectedCategory === category ? 'default' : 'secondary'}
             size="sm"
             onClick={() => setSelectedCategory(category)}
           >

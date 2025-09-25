@@ -86,7 +86,7 @@ export default function DebuggerPage() {
             <SkipForward className="w-4 h-4 mr-2" />
             Próximo
           </Button>
-          <Button variant="danger" onClick={handleStopDebug}>
+          <Button variant="destructive" onClick={handleStopDebug}>
             <Square className="w-4 h-4 mr-2" />
             Parar
           </Button>

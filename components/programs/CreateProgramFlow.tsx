@@ -330,7 +330,7 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
                 <h4 className="font-medium text-blue-900 mb-3">Provider de IA</h4>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={providerPreference === '' ? 'primary' : 'secondary'}
+                    variant={providerPreference === '' ? 'default' : 'secondary'}
                     size="sm"
                     onClick={() => setProviderPreference('')}
                   >
@@ -339,7 +339,7 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
                   {availableProviders.map(provider => (
                     <Button
                       key={provider.type}
-                      variant={providerPreference === provider.type ? 'primary' : 'secondary'}
+                      variant={providerPreference === provider.type ? 'default' : 'secondary'}
                       size="sm"
                       onClick={() => setProviderPreference(provider.type)}
                     >

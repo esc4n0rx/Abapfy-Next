@@ -74,7 +74,7 @@ export function ProgramTypeSelector({
         {categories.map(category => (
           <Button
             key={category}
-            variant={selectedCategory === category ? 'primary' : 'secondary'}
+            variant={selectedCategory === category ? 'default' : 'secondary'}
             size="sm"
             onClick={() => setSelectedCategory(category)}
           >
