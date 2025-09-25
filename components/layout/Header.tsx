@@ -1,7 +1,7 @@
 // components/layout/Header.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, HelpCircle, Bell, UserCircle2, Settings, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +9,11 @@ import { SettingsModal } from './SettingsModal';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import { useProviders } from '@/hooks/useProviders';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const { providers } = useProviders();
   const router = useRouter();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -45,6 +47,13 @@ export function Header() {
     }
   };
 
+  const [activeProvider, setActiveProvider] = useState<string>('');
+
+  useEffect(() => {
+    const availableProvider = providers.find(p => p.isEnabled && p.apiKey);
+    setActiveProvider(availableProvider?.name || '');
+  }, [providers]);
+
   const roleInfo = getRoleDisplay();
 
   return (
@@ -57,6 +66,14 @@ export function Header() {
               <span className="text-white font-bold text-sm">A</span>
             </div>
             <h1 className="text-xl font-semibold text-gray-900">Abapfy</h1>
+             {activeProvider && (
+              <div className="flex items-center space-x-2 ml-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                  {activeProvider} Ativo
+                </Badge>
+              </div>
+            )}
           </div>
 
           {/* Search */}
