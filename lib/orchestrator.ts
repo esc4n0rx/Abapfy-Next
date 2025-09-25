@@ -1,5 +1,4 @@
-// lib/orchestrator.ts
-import { ABAPPrompts, PromptContext } from '@/lib/prompts';
+import { ABAPPrompts, ProgramPrompts, PromptContext } from '@/lib/prompts';
 import { ChatMessage, ProviderResponse, ProviderType } from '@/types/providers';
 import { CodeProcessor } from '@/lib/utils/codeProcessor';
 import { GroqProvider } from '@/lib/providers/groq';
@@ -7,7 +6,6 @@ import { ArceeProvider } from '@/lib/providers/arcee';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
-import { ProgramPrompts } from './prompts/programs';
 
 export interface GenerationRequest {
   context: PromptContext;
