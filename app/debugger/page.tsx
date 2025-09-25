@@ -7,8 +7,8 @@ import { Toolbar } from '@/components/layout/Toolbar';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Field } from '@/components/ui/Field';
-import { Alert } from '@/components/ui/Alert';
-import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { sampleABAPCode, debugFramesMock, debugVariablesMock } from '@/lib/abapSamples';
 
 export default function DebuggerPage() {
@@ -105,7 +105,7 @@ export default function DebuggerPage() {
       />
       
       <div className="container mx-auto px-6 py-8 space-y-6">
-        <Alert type="info">
+        <Alert variant="default">
           <strong>Simulação Estática:</strong> Este debugger não executa código ABAP real, apenas simula 
           a execução para fins educacionais e análise de fluxo.
         </Alert>

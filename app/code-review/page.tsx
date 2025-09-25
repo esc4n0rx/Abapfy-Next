@@ -6,8 +6,8 @@ import { Header } from '@/components/layout/Header';
 import { Toolbar } from '@/components/layout/Toolbar';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
-import { Alert } from '@/components/ui/Alert';
-import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { sampleABAPCode, findingsMock } from '@/lib/abapSamples';
 
@@ -63,7 +63,7 @@ export default function CodeReviewPage() {
 
   const getSeverityVariant = (severity: string) => {
     switch (severity) {
-      case 'error': return 'error';
+      case 'error': return 'destructive';
       case 'warning': return 'warning';  
       case 'info': return 'default';
       default: return 'default';
@@ -165,7 +165,7 @@ export default function CodeReviewPage() {
                 <h3 className="text-lg font-semibold text-text">Issues Encontrados</h3>
                 
                 {findings.length === 0 ? (
-                  <Alert type="success">
+                  <Alert variant="default">
                     <CheckCircle className="w-5 h-5" />
                     Parabéns! Nenhum problema encontrado no seu código.
                   </Alert>
@@ -230,7 +230,7 @@ export default function CodeReviewPage() {
       
       <div className="container mx-auto px-6 py-8">
         <div className="mb-6">
-          <Alert type="info">
+          <Alert variant="default">
             Nossa IA analisa seu código ABAP identificando problemas de performance, segurança, 
             padrões SAP e oportunidades de modernização.
           </Alert>
