@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProvidersProvider } from '@/contexts/ProvidersContext';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
             <PageWrapper>{children}</PageWrapper>
           </ProvidersProvider>
         </AuthProvider>
+        <SpeedInsights/>
       </body>
     </html>
   );

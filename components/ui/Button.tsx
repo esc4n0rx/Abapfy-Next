@@ -5,7 +5,11 @@ import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// Movido para fora para que o tipo possa ser usado na interface
+const MotionButton = motion.button;
+
+// A interface agora estende as props do próprio motion.button, resolvendo o conflito de tipos
+interface ButtonProps extends React.ComponentProps<typeof MotionButton> {
   variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
@@ -30,8 +34,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'h-12 px-6 text-base rounded-xl'
     };
 
-    const MotionButton = motion.button;
-
     return (
       <MotionButton
         ref={ref}
@@ -39,6 +41,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         whileTap={{ scale: variant === 'primary' ? 0.98 : 1 }}
         transition={{ duration: 0.1 }}
+        // O type casting foi removido pois as props agora estão corretamente tipadas
         {...props}
       >
         {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
