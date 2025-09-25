@@ -1,184 +1,100 @@
+// app/programas/page.tsx
 'use client';
 
 import { useState } from 'react';
-import { Save, Play, Code, Share, Wand2, Upload } from 'lucide-react';
+import { Plus, Sparkles, Code, Zap, FileText, Upload } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Toolbar } from '@/components/layout/Toolbar';
 import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Textarea';
-import { Field } from '@/components/ui/Field';
-import { Alert } from '@/components/ui/Alert';
 import { Modal } from '@/components/ui/Modal';
-import { Tabs } from '@/components/ui/Tabs';
-import { helloProgram } from '@/lib/abapSamples';
+import { CreateProgramFlow } from '@/components/programs/CreateProgramFlow';
+import { RecentPrograms } from '@/components/programs/RecentPrograms';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useProviders } from '@/hooks/useProviders';
+
+const QUICK_ACTIONS = [
+  {
+    id: 'report',
+    title: 'Report Program',
+    description: 'Relatório com tela de seleção e ALV',
+    icon: '📊',
+    color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    complexity: 'medium'
+  },
+  {
+    id: 'executable_program',
+    title: 'Programa Executável',
+    description: 'Job ou processamento batch',
+    icon: '⚡',
+    color: 'bg-green-50 border-green-200 hover:bg-green-100',
+    complexity: 'medium'
+  },
+  {
+    id: 'module_pool',
+    title: 'Module Pool',
+    description: 'Interface com múltiplas telas',
+    icon: '🖥️',
+    color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
+    complexity: 'high'
+  },
+  {
+    id: 'transaction_program',
+    title: 'Programa Transacional',
+    description: 'Transação completa com workflow',
+    icon: '🔄',
+    color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+    complexity: 'very_high'
+  }
+];
 
 export default function ProgramasPage() {
-  const [code, setCode] = useState(helloProgram);
-  const [programName, setProgramName] = useState('ZHELLO_ABAPFY');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [output, setOutput] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
+  const { providers } = useProviders();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedQuickAction, setSelectedQuickAction] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    
-    setIsGenerating(true);
-    // Simula geração com IA
-    setTimeout(() => {
-      const mockGeneratedCode = `REPORT z${prompt.toLowerCase().replace(/\s+/g, '_')}.
+  const availableProviders = providers.filter(p => p.isEnabled && p.apiKey);
+  const hasActiveProvider = availableProviders.length > 0;
 
-* Programa gerado automaticamente pela IA do Abapfy
-* Prompt: ${prompt}
-
-DATA: lv_result TYPE string.
-
-START-OF-SELECTION.
-  lv_result = 'Programa criado com sucesso usando IA!'.
-  WRITE: / lv_result.
-
-* Lógica personalizada baseada no prompt
-PERFORM process_user_request.
-
-FORM process_user_request.
-  WRITE: / 'Executando lógica para: ${prompt}'.
-ENDFORM.`;
-
-      setCode(mockGeneratedCode);
-      setIsGenerating(false);
-      setPrompt('');
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    }, 2000);
+  const handleQuickAction = (actionId: string) => {
+    setSelectedQuickAction(actionId);
+    setShowCreateModal(true);
   };
 
-  const handleExecute = () => {
-    setOutput(`Executando programa: ${programName}
-
-[14:32:15] Início da execução
-[14:32:15] Hello ABAPFY - Sua plataforma de desenvolvimento ABAP!
-[14:32:15] Bem-vindo ao futuro do desenvolvimento SAP.
-[14:32:15] ABAPFY está funcionando perfeitamente!
-[14:32:16] Execução concluída com sucesso
-
-Tempo total: 1.2 segundos
-Linhas processadas: 8
-Status: ✅ Sucesso`);
+  const handleProgramCreated = () => {
+    setRefreshKey(prev => prev + 1);
+    setShowCreateModal(false);
   };
 
-  const handleFormat = () => {
-    // Simula formatação de código
-    const formattedCode = code
-      .replace(/\bDATA:/g, 'DATA:')
-      .replace(/\bWRITE:/g, 'WRITE:')
-      .replace(/\bSTART-OF-SELECTION/g, 'START-OF-SELECTION');
-    setCode(formattedCode);
-  };
-
-  const tabs = [
-    {
-      id: 'editor',
-      label: 'Editor de Código',
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-4">
-              <Field
-                label="Nome do Programa"
-                value={programName}
-                onChange={(e) => setProgramName(e.target.value)}
-                placeholder="Ex: ZTEST_PROGRAM"
-              />
-              
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-text">
-                  Gerador IA
-                </label>
-                <Textarea
-                  placeholder="Descreva o que você quer criar... Ex: 'Criar um relatório de vendas com filtro por data'"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={4}
-                />
-                <Button 
-                  onClick={handleGenerate}
-                  loading={isGenerating}
-                  disabled={!prompt.trim()}
-                  className="w-full"
-                >
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Gerar com IA
-                </Button>
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <Button variant="secondary" className="w-full">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Carregar Arquivo
-                </Button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              <Textarea
-                label="Código ABAP"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                rows={20}
-                className="font-mono"
-                placeholder="Seu código ABAP aqui..."
-              />
-            </div>
-          </div>
-
-          {showSuccess && (
-            <Alert type="success">
-              Código gerado com sucesso! Você pode editá-lo ou executar diretamente.
-            </Alert>
-          )}
-        </div>
-      )
-    },
-    {
-      id: 'output',
-      label: 'Saída',
-      content: (
-        <div className="space-y-4">
-          {output ? (
-            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm whitespace-pre-line">
-              {output}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Play className="w-8 h-8 text-subtle" />
-              </div>
-              <p className="text-subtle">Execute o programa para ver a saída aqui</p>
-            </div>
-          )}
-        </div>
-      )
+  const getComplexityColor = (complexity: string) => {
+    switch (complexity) {
+      case 'low': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-blue-100 text-blue-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'very_high': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  ];
+  };
+
+  const getComplexityLabel = (complexity: string) => {
+    switch (complexity) {
+      case 'low': return 'Simples';
+      case 'medium': return 'Médio';
+      case 'high': return 'Avançado';
+      case 'very_high': return 'Expert';
+      default: return 'Padrão';
+    }
+  };
 
   const toolbarActions = (
     <>
-      <Button variant="secondary" onClick={handleFormat}>
-        <Code className="w-4 h-4 mr-2" />
-        Formatar
-      </Button>
-      <Button variant="secondary">
-        <Save className="w-4 h-4 mr-2" />
-        Salvar
-      </Button>
-      <Button onClick={handleExecute}>
-        <Play className="w-4 h-4 mr-2" />
-        Executar
-      </Button>
-      <Button variant="tertiary" onClick={() => setShowShareModal(true)}>
-        <Share className="w-4 h-4 mr-2" />
-        Compartilhar
+      <Button 
+        onClick={() => setShowCreateModal(true)}
+        disabled={!hasActiveProvider}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Criar Programa
       </Button>
     </>
   );
@@ -187,40 +103,124 @@ Status: ✅ Sucesso`);
     <div className="min-h-screen bg-background">
       <Header />
       <Toolbar 
-        title="Editor de Programas ABAP"
+        title="Gerador de Programas ABAP"
         breadcrumb={[{label: 'Home', href: '/dashboard'}, {label: 'Programas'}]}
         actions={toolbarActions}
       />
       
-      <div className="container mx-auto px-6 py-8">
-        <Tabs tabs={tabs} />
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        {/* AI Status */}
+        {!hasActiveProvider && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-amber-900">
+                    Configure um Provider de IA
+                  </h3>
+                  <p className="text-sm text-amber-700">
+                    Para usar o gerador de programas ABAP, configure pelo menos um provider de IA nas configurações.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {hasActiveProvider && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-900">
+                      IA Pronta para Gerar Programas
+                    </h3>
+                    <p className="text-sm text-green-700">
+                      {availableProviders.length} provider{availableProviders.length > 1 ? 's' : ''} de IA configurado{availableProviders.length > 1 ? 's' : ''} e disponível{availableProviders.length > 1 ? 'is' : ''}.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  {availableProviders.map(provider => (
+                    <Badge key={provider.type} variant="default" className="bg-green-100 text-green-800">
+                      {provider.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Criação Rápida</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {QUICK_ACTIONS.map((action) => (
+              <Card 
+                key={action.id}
+                className={`cursor-pointer border-2 transition-all duration-200 hover:shadow-md ${action.color} ${!hasActiveProvider ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => hasActiveProvider && handleQuickAction(action.id)}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="text-3xl mb-3">{action.icon}</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">{action.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{action.description}</p>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ${getComplexityColor(action.complexity)}`}
+                  >
+                    {getComplexityLabel(action.complexity)}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Programs */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Programas Recentes</h2>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              disabled={!hasActiveProvider}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Novo
+            </Button>
+          </div>
+          <RecentPrograms key={refreshKey} />
+        </div>
       </div>
 
+      {/* Create Program Modal */}
       <Modal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        title="Compartilhar Programa"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setShowShareModal(false)}>
-              Cancelar
-            </Button>
-            <Button>
-              Copiar Link
-            </Button>
-          </>
-        }
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setSelectedQuickAction('');
+        }}
+        title="Criar Programa ABAP"
+        size="2xl"
       >
-        <div className="space-y-4">
-          <p className="text-subtle">
-            Gere um link público para compartilhar este programa com outros desenvolvedores.
-          </p>
-          <Field
-            label="Link Público"
-            value="https://abapfy.com/share/zhello-abapfy-abc123"
-            readOnly
-          />
-        </div>
+        <CreateProgramFlow
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedQuickAction('');
+          }}
+          onProgramCreated={handleProgramCreated}
+          initialType={selectedQuickAction}
+        />
       </Modal>
     </div>
   );

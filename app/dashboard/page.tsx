@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx
+// app/dashboard/page.tsx (modificado)
 'use client';
 
 import { Header } from '@/components/layout/Header';
@@ -16,10 +16,10 @@ const recentTools = [
     lastAccess: '2 horas atrás'
   },
   {
-    title: 'ZPROGRAM_TEST',
-    description: 'Programa de teste de performance',
+    title: 'ZPROGRAM_SALES',
+    description: 'Report de vendas mensais',
     iconName: 'Code',
-    href: '/programas/ZPROGRAM_TEST',
+    href: '/programas/ZPROGRAM_SALES',
     lastAccess: '5 horas atrás'
   },
   {
@@ -33,8 +33,8 @@ const recentTools = [
 
 const allTools = [
   {
-    title: 'Editor de Programas',
-    description: 'Crie, edite e valide programas ABAP/ABAP Cloud com assistência de IA.',
+    title: 'Gerador de Programas',
+    description: 'Crie programas ABAP completos e profissionais com assistência de IA avançada.',
     iconName: 'Code',
     href: '/programas',
     category: 'Desenvolvimento'
@@ -90,126 +90,60 @@ export default function DashboardPage() {
             </div>
             <div className="hidden md:flex items-center space-x-4">
               <Badge variant="outline" className="px-3 py-1">
-                {user?.role === 'admin' ? '🔧 Administrador' : '👨‍💻 Desenvolvedor'}
+                {user?.role === 'admin' ? 'Administrador' : 'Desenvolvedor'}
               </Badge>
-              {user?.company && (
-                <Badge variant="secondary" className="px-3 py-1">
-                  🏢 {user.company}
-                </Badge>
-              )}
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-600">Online</span>
             </div>
           </div>
+        </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            {quickStats.map((stat, index) => (
-              <Card key={index} className="bg-white border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                    <Badge 
-                      variant={stat.trend.startsWith('+') ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {quickStats.map((stat, index) => (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.label}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-sm font-medium ${
+                      stat.trend.startsWith('+') 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
                       {stat.trend}
-                    </Badge>
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-
-        {/* Seção Recentes */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Acessados Recentemente</h2>
-            <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-              Ver todos
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Recent Tools */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Acessos Recentes</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recentTools.map((tool, index) => (
-              <Card key={tool.title} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer group">
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
-                      <div className="w-6 h-6 text-blue-600">
-                        {tool.iconName === 'Package' && '📦'}
-                        {tool.iconName === 'Code' && '💻'}
-                        {tool.iconName === 'Bug' && '🐛'}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {tool.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">{tool.description}</p>
-                      <p className="text-xs text-gray-400 mt-2">{tool.lastAccess}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ToolCard index={0} key={index} {...tool} />
             ))}
           </div>
         </div>
 
-        {/* Todas as Ferramentas */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Todas as Ferramentas</h2>
-            <div className="flex space-x-2">
-              <Badge variant="outline">4 disponíveis</Badge>
-            </div>
-          </div>
-          
-          {/* Agrupamento por categoria */}
-          <div className="space-y-8">
-            {['Desenvolvimento', 'Debug', 'Qualidade'].map(category => (
-              <div key={category}>
-                <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                  {category}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {allTools
-                    .filter(tool => tool.category === category)
-                    .map((tool, index) => (
-                      <ToolCard
-                        key={tool.title}
-                        title={tool.title}
-                        description={tool.description}
-                        iconName={tool.iconName}
-                        href={tool.href}
-                        index={index}
-                      />
-                    ))}
-                </div>
-              </div>
+        {/* All Tools */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Ferramentas Disponíveis</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {allTools.map((tool, index) => (
+              <ToolCard index={0} key={index} {...tool} />
             ))}
           </div>
-        </div>
-
-        {/* Status do Sistema */}
-        <div className="mt-16">
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium text-gray-800">
-                    Todas as ferramentas estão online e funcionando perfeitamente
-                  </span>
-                  <Badge variant="default" className="bg-green-100 text-green-800">
-                    Sistema Saudável
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </main>
     </div>

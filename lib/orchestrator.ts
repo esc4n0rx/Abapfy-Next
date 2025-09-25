@@ -7,6 +7,7 @@ import { ArceeProvider } from '@/lib/providers/arcee';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
+import { ProgramPrompts } from './prompts/programs';
 
 export interface GenerationRequest {
   context: PromptContext;
@@ -177,7 +178,97 @@ export class AIOrchestrator {
       };
     }
   }
+  
+  /**
+   * Orquestra a geração de programas ABAP completos usando o melhor provider disponível
+   */
+  static async generateProgram(request: GenerationRequest): Promise<GenerationResult> {
+    try {
+      // 1. Verificar autenticação
+      const token = request.request.cookies.get('auth-token')?.value;
+      if (!token) {
+        return {
+          success: false,
+          error: 'Token não encontrado'
+        };
+      }
 
+      const decoded = verifyToken(token);
+
+      // 2. Gerar prompt baseado no contexto de programa
+      const promptData = ProgramPrompts.getPrompt(request.context as any);
+
+      // 3. Preparar mensagens para o chat
+      const messages: ChatMessage[] = [
+        {
+          role: 'system',
+          content: promptData.systemPrompt
+        },
+        {
+          role: 'user',
+          content: promptData.userPrompt
+        }
+      ];
+
+      // 4. Tentar providers em ordem de preferência
+      const providers = this.getProviderPriority(request.providerPreference);
+      
+      for (const provider of providers) {
+        try {
+          const result = await this.tryProvider(
+            provider,
+            messages,
+            {
+              temperature: promptData.temperature,
+              maxTokens: promptData.maxTokens,
+            },
+            decoded.userId
+          );
+
+          if (result.success && result.code) {
+            // Processar e limpar o código antes de retornar
+            const cleanedCode = CodeProcessor.extractABAPCode(result.code);
+            
+            // Validar se o código limpo é válido
+            const validation = CodeProcessor.validateABAPCode(cleanedCode);
+            
+            if (!validation.isValid) {
+              console.warn(`Código gerado possui problemas: ${validation.issues.join(', ')}`);
+            }
+
+            // Formatar o código
+            const formattedCode = CodeProcessor.formatABAPCode(cleanedCode);
+
+            // Registrar uso (fire and forget)
+            this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
+              .catch(console.error);
+
+            return {
+              ...result,
+              code: formattedCode
+            };
+          }
+        } catch (error: any) {
+          console.warn(`Provider ${provider} failed:`, error.message);
+          continue;
+        }
+      }
+
+      return {
+        success: false,
+        error: 'Nenhum provider de IA disponível ou configurado'
+      };
+
+    } catch (error: any) {
+      console.error('Erro na geração de programa:', error);
+      return {
+        success: false,
+        error: `Erro na geração: ${error.message}`
+      };
+    }
+  }
+
+  
   /**
    * Define a ordem de prioridade dos providers
    */
