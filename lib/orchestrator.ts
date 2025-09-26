@@ -6,6 +6,8 @@ import { ArceeProvider } from '@/lib/providers/arcee';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
+import { DebugPrompts } from './prompts/debug';
+import { CodeAnalysisRequest } from '@/types/codeAnalysis';
 
 export interface GenerationRequest {
   context: PromptContext;
@@ -113,70 +115,102 @@ export class AIOrchestrator {
     }
   }
 
-  /**
-   * Analisa código ABAP (debug ou review)
-   */
-  static async analyzeCode(
-    code: string, 
-    analysisType: 'debug' | 'review',
-    userId: string,
-    providerPreference?: ProviderType
-  ): Promise<GenerationResult> {
-    try {
-      const promptData = analysisType === 'debug' 
-        ? ABAPPrompts.getDebugPrompt(code)
-        : ABAPPrompts.getReviewPrompt(code);
-
-      const messages: ChatMessage[] = [
-        {
-          role: 'system',
-          content: promptData.systemPrompt
-        },
-        {
-          role: 'user',
-          content: promptData.userPrompt
-        }
-      ];
-
-      const providers = this.getProviderPriority(providerPreference);
-      
-      for (const provider of providers) {
-        try {
-          const result = await this.tryProvider(
-            provider,
-            messages,
-            {
-              temperature: promptData.temperature,
-              maxTokens: promptData.maxTokens,
-            },
-            userId
-          );
-
-          if (result.success) {
-            // Registrar uso
-            this.logUsage(userId, provider, result.model, result.tokensUsed || 0)
-              .catch(console.error);
-
-            return result;
-          }
-        } catch (error: any) {
-          console.warn(`Provider ${provider} failed:`, error.message);
-          continue;
-        }
-      }
-
+/**
+ * Analisa código ABAP (debug ou review)
+ */
+static async analyzeCode(
+  code: string, 
+  analysisType: 'debug' | 'review',
+  userId: string,
+  debugContext?: {
+    errorMessage?: string;
+    errorType?: string;
+    flowDescription?: string;
+    reproducible?: boolean;
+    environment?: string;
+  },
+  providerPreference?: ProviderType
+): Promise<GenerationResult> {
+  try {
+    const decoded = verifyToken(`Bearer ${userId}`); // Simplificado para este contexto
+    
+    if (!decoded) {
       return {
         success: false,
-        error: 'Nenhum provider de IA disponível'
-      };
-
-    } catch (error: any) {
-      return {
-        success: false,
-        error: `Erro na análise: ${error.message}`
+        error: 'Usuário não autenticado'
       };
     }
+
+    // 1. Criar request object para debug ou usar código diretamente para review
+    let promptData;
+    
+    if (analysisType === 'debug') {
+      const request: CodeAnalysisRequest = {
+        code,
+        analysisType: 'debug',
+        debugContext
+      };
+      promptData = DebugPrompts.getDebugPrompt(request);
+    } else {
+      promptData = DebugPrompts.getCodeReviewPrompt(code);
+    }
+
+    // 2. Preparar mensagens para o chat
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: promptData.systemPrompt
+      },
+      {
+        role: 'user',
+        content: promptData.userPrompt
+      }
+    ];
+
+    // 3. Tentar providers em ordem de preferência
+    const providers = this.getProviderPriority(providerPreference);
+    
+    for (const provider of providers) {
+      try {
+        const result = await this.tryProvider(
+          provider,
+          messages,
+          {
+            temperature: promptData.temperature,
+            maxTokens: promptData.maxTokens,
+          },
+          decoded.userId
+        );
+
+        if (result.success && result.code) {
+          // Registrar uso (fire and forget)
+          this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
+            .catch(console.error);
+
+          return {
+            ...result,
+            code: result.code 
+          };
+        }
+      } catch (error: any) {
+        console.warn(`Provider ${provider} failed:`, error.message);
+        continue;
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Nenhum provider de IA disponível ou configurado'
+    };
+
+  } catch (error: any) {
+    console.error('Erro na análise:', error);
+    return {
+      success: false,
+      error: `Erro na análise: ${error.message}`
+    };
   }
+}
   
   /**
    * Orquestra a geração de programas ABAP completos usando o melhor provider disponível
@@ -341,6 +375,8 @@ export class AIOrchestrator {
       throw new Error(`Erro no provider ${provider}: ${error.message}`);
     }
   }
+
+  
 
   /**
    * Registra o uso do provider para estatísticas

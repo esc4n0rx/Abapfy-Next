@@ -6,6 +6,7 @@ import { ToolCard } from '@/components/home/ToolCard';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CodeDebugCard } from '@/components/code/CodeDebugCard';
 
 const recentTools = [
   {
@@ -45,20 +46,6 @@ const allTools = [
     iconName: 'Package',
     href: '/modulos',
     category: 'Desenvolvimento'
-  },
-  {
-    title: 'Debugger Virtual',
-    description: 'Simule e inspecione execução de código com breakpoints virtuais.',
-    iconName: 'Bug',
-    href: '/debugger',
-    category: 'Debug'
-  },
-  {
-    title: 'Code Review IA',
-    description: 'Analise qualidade, formatação e identifique riscos no seu código.',
-    iconName: 'FileSearch',
-    href: '/code-review',
-    category: 'Qualidade'
   }
 ];
 
@@ -140,8 +127,10 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Ferramentas Disponíveis</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <CodeDebugCard />
+            
             {allTools.map((tool, index) => (
-              <ToolCard index={0} key={index} {...tool} />
+              <ToolCard index={index + 1} key={index} {...tool} />
             ))}
           </div>
         </div>

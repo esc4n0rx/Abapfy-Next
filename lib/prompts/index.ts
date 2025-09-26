@@ -1,6 +1,6 @@
-// lib/prompts/index.ts
 export * from './abap';
-export * from './programs'; // This correctly exports everything from programs.ts
+export * from './programs';
+export * from './debug';
 
 export interface PromptContext {
   description: string;
