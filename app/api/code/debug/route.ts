@@ -1,25 +1,26 @@
-// app/api/code/debug/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { AIOrchestrator } from '@/lib/orchestrator';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
+import { DebugProcessor } from '@/lib/utils/debugProcessor';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  
   try {
-    // Verificar autenticação usando cookies (como outras APIs)
     const token = request.cookies.get('auth-token')?.value;
+    
     if (!token) {
       return NextResponse.json({ error: 'Token não encontrado' }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
-    const analysisRequest: CodeAnalysisRequest = await request.json();
     
-    // Validar request
+    const analysisRequest: CodeAnalysisRequest = await request.json();
+
     if (!analysisRequest.code || !analysisRequest.code.trim()) {
       return NextResponse.json(
         { error: 'Código é obrigatório' },
@@ -33,8 +34,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Realizar análise via AIOrchestrator com provider preference
     const result = await AIOrchestrator.analyzeCode(
       analysisRequest.code,
       'debug',
@@ -43,25 +42,29 @@ export async function POST(request: NextRequest) {
       analysisRequest.providerPreference
     );
 
+
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || 'Erro na análise' },
         { status: 500 }
       );
     }
-
-    // Parsear resultado JSON da IA
+    
     let analysisResults;
     try {
-      analysisResults = JSON.parse(result.code || '{}');
-    } catch (error) {
+      analysisResults = DebugProcessor.processDebugResponse(result.code || '');
+      
+      if (!DebugProcessor.validateDebugResponse(analysisResults)) {
+        console.log('Resposta da IA pode estar incompleta');
+      }
+      
+    } catch (parseError) {
       return NextResponse.json(
         { error: 'Erro ao processar resposta da IA' },
         { status: 500 }
       );
     }
 
-    // Salvar no banco
     const { data: savedAnalysis, error: saveError } = await supabaseAdmin
       .from('code_analyses')
       .insert({
@@ -69,7 +72,14 @@ export async function POST(request: NextRequest) {
         analysis_type: 'debug',
         code: analysisRequest.code,
         debug_context: analysisRequest.debugContext,
-        results: analysisResults,
+        results: {
+          summary: analysisResults.summary,
+          issues: DebugProcessor.convertToAnalysisIssues ? 
+            DebugProcessor.convertToAnalysisIssues(analysisResults.issues) : 
+            analysisResults.issues,
+          suggestions: analysisResults.suggestions,
+          debugSolutions: analysisResults.debugSolutions
+        },
         metadata: {
           provider: result.provider,
           model: result.model,
@@ -81,7 +91,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (saveError) {
-      console.error('Erro ao salvar análise:', saveError);
+      console.error('Erro ao salvar análise no banco:', saveError);
       return NextResponse.json(
         { error: 'Erro ao salvar análise' },
         { status: 500 }
@@ -94,7 +104,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Erro no debug:', error);
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 500 }

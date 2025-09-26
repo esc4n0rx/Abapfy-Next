@@ -1,25 +1,26 @@
-// app/api/code/review/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { AIOrchestrator } from '@/lib/orchestrator';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
+import { ReviewProcessor } from '@/lib/utils/reviewProcessor';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  
   try {
-    // Verificar autenticação usando cookies (como outras APIs)
     const token = request.cookies.get('auth-token')?.value;
+    
     if (!token) {
       return NextResponse.json({ error: 'Token não encontrado' }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
+    
     const analysisRequest: CodeAnalysisRequest = await request.json();
     
-    // Validar request
     if (!analysisRequest.code || !analysisRequest.code.trim()) {
       return NextResponse.json(
         { error: 'Código é obrigatório' },
@@ -34,12 +35,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Realizar análise via AIOrchestrator com provider preference
     const result = await AIOrchestrator.analyzeCode(
       analysisRequest.code,
       'review',
       decoded.userId,
-      undefined, // debugContext não usado no review
+      undefined,
       analysisRequest.providerPreference
     );
 
@@ -49,26 +49,34 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    // Parsear resultado JSON da IA
+    
     let analysisResults;
     try {
-      analysisResults = JSON.parse(result.code || '{}');
-    } catch (error) {
+      analysisResults = ReviewProcessor.processReviewResponse(result.code || '');
+      
+      if (!ReviewProcessor.validateReviewResponse(analysisResults)) {
+        console.log('Resposta da IA pode estar incompleta');
+      }
+      
+    } catch (parseError) {
       return NextResponse.json(
         { error: 'Erro ao processar resposta da IA' },
         { status: 500 }
       );
     }
 
-    // Salvar no banco
     const { data: savedAnalysis, error: saveError } = await supabaseAdmin
       .from('code_analyses')
       .insert({
         user_id: decoded.userId,
         analysis_type: 'review',
         code: analysisRequest.code,
-        results: analysisResults,
+        results: {
+          summary: analysisResults.summary,
+          score: analysisResults.score,
+          issues: ReviewProcessor.convertToAnalysisIssues(analysisResults.issues),
+          suggestions: analysisResults.suggestions
+        },
         metadata: {
           provider: result.provider,
           model: result.model,
@@ -80,7 +88,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (saveError) {
-      console.error('Erro ao salvar análise:', saveError);
+      console.error('Erro ao salvar análise no banco:', saveError);
       return NextResponse.json(
         { error: 'Erro ao salvar análise' },
         { status: 500 }
@@ -93,7 +101,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Erro no code review:', error);
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 500 }

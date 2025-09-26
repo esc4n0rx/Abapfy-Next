@@ -115,13 +115,13 @@ export class AIOrchestrator {
     }
   }
 
-/**
+  /**
  * Analisa código ABAP (debug ou review)
  */
 static async analyzeCode(
   code: string, 
   analysisType: 'debug' | 'review',
-  userId: string,
+  userId: string, // ✅ Receber userId já verificado pelas APIs
   debugContext?: {
     errorMessage?: string;
     errorType?: string;
@@ -132,15 +132,11 @@ static async analyzeCode(
   providerPreference?: ProviderType
 ): Promise<GenerationResult> {
   try {
-    const decoded = verifyToken(`Bearer ${userId}`); // Simplificado para este contexto
+    // ❌ REMOVIDO: Verificação duplicada de token
+    // const decoded = verifyToken(`Bearer ${userId}`); 
     
-    if (!decoded) {
-      return {
-        success: false,
-        error: 'Usuário não autenticado'
-      };
-    }
-
+    // ✅ NOVO: Usar userId diretamente (já verificado pelas APIs)
+    
     // 1. Criar request object para debug ou usar código diretamente para review
     let promptData;
     
@@ -179,12 +175,12 @@ static async analyzeCode(
             temperature: promptData.temperature,
             maxTokens: promptData.maxTokens,
           },
-          decoded.userId
+          userId // ✅ Usar userId diretamente
         );
 
         if (result.success && result.code) {
           // Registrar uso (fire and forget)
-          this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
+          this.logUsage(userId, provider, result.model, result.tokensUsed || 0)
             .catch(console.error);
 
           return {
