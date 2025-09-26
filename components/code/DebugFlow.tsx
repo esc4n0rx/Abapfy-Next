@@ -199,21 +199,21 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
 
             {/* Error Type */}
             <div className="space-y-2">
-              <Label htmlFor="error-type">Tipo do Erro</Label>
-              <Select value={errorType} onValueChange={setErrorType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de erro" />
+            <Label htmlFor="error-type">Tipo do Erro</Label>
+            <Select value={errorType} onValueChange={setErrorType}>
+                <SelectTrigger className="bg-white border-gray-300">
+                <SelectValue placeholder="Selecione o tipo de erro" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="runtime">Erro de Runtime</SelectItem>
-                  <SelectItem value="logic">Erro de Lógica</SelectItem>
-                  <SelectItem value="performance">Problema de Performance</SelectItem>
-                  <SelectItem value="data">Problema com Dados</SelectItem>
-                  <SelectItem value="integration">Erro de Integração</SelectItem>
-                  <SelectItem value="authorization">Problema de Autorização</SelectItem>
-                  <SelectItem value="other">Outro</SelectItem>
+                <SelectContent className="bg-white border-gray-300 shadow-lg">
+                <SelectItem value="runtime">Erro de Runtime</SelectItem>
+                <SelectItem value="logic">Erro de Lógica</SelectItem>
+                <SelectItem value="performance">Problema de Performance</SelectItem>
+                <SelectItem value="data">Problema com Dados</SelectItem>
+                <SelectItem value="integration">Erro de Integração</SelectItem>
+                <SelectItem value="authorization">Problema de Autorização</SelectItem>
+                <SelectItem value="other">Outro</SelectItem>
                 </SelectContent>
-              </Select>
+            </Select>
             </div>
 
             {/* Flow Description */}
@@ -230,20 +230,20 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
 
             {/* Environment */}
             <div className="space-y-2">
-              <Label htmlFor="environment">Ambiente</Label>
-              <Select value={environment} onValueChange={setEnvironment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o ambiente" />
+            <Label htmlFor="environment">Ambiente</Label>
+            <Select value={environment} onValueChange={setEnvironment}>
+                <SelectTrigger className="bg-white border-gray-300">
+                <SelectValue placeholder="Selecione o ambiente" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dev">Desenvolvimento</SelectItem>
-                  <SelectItem value="qas">Qualidade</SelectItem>
-                  <SelectItem value="prd">Produção</SelectItem>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
+                <SelectContent className="bg-white border-gray-300 shadow-lg">
+                <SelectItem value="dev">Desenvolvimento</SelectItem>
+                <SelectItem value="qas">Qualidade</SelectItem>
+                <SelectItem value="prd">Produção</SelectItem>
+                <SelectItem value="sandbox">Sandbox</SelectItem>
                 </SelectContent>
-              </Select>
+            </Select>
             </div>
-
+            
             {/* Reproducible */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
