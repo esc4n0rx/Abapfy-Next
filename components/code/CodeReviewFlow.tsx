@@ -8,6 +8,9 @@ import { ChevronLeft, FileSearch, Loader2 } from 'lucide-react';
 import { CodeUploader } from './CodeUploader';
 import { AnalysisResults } from './AnalysisResults';
 import { CodeAnalysisRequest, CodeAnalysisResult } from '@/types/codeAnalysis';
+import { useProviders } from '@/hooks/useProviders';
+import { ProviderType } from '@/types/providers';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface CodeReviewFlowProps {
   onBack: () => void;
@@ -19,6 +22,9 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
   const [filename, setFilename] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<CodeAnalysisResult | null>(null);
+  const { providers } = useProviders();
+  const [providerPreference, setProviderPreference] = useState<ProviderType>('groq');
+  const availableProviders = providers.filter(p => p.isEnabled && p.apiKey);
 
   const handleCodeLoaded = (loadedCode: string, loadedFilename?: string) => {
     setCode(loadedCode);
@@ -30,9 +36,10 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
     setStep('analysis');
 
     const request: CodeAnalysisRequest = {
-      code,
-      analysisType: 'review'
-    };
+    code,
+    analysisType: 'review',
+    providerPreference, // Adicionar
+  };
 
     try {
       const response = await fetch('/api/code/review', {
@@ -84,6 +91,38 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
           <div className={`w-2 h-2 rounded-full ${step === 'analysis' || step === 'results' ? 'bg-blue-500' : 'bg-gray-300'}`} />
         </div>
       </div>
+
+      {step !== 'upload' && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-1">
+                  <span className="text-sm font-medium text-gray-700">IA:</span>
+                  <Select value={providerPreference} onValueChange={(value: ProviderType) => setProviderPreference(value)}>
+                      <SelectTrigger className="w-40 h-8">
+                      <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                      {availableProviders.map(provider => (
+                          <SelectItem key={provider.type} value={provider.type}>
+                          <div className="flex items-center space-x-2">
+                              <span>{provider.name}</span>
+                              {provider.type === 'groq' && (
+                              <span className="text-xs text-green-600 font-medium">Gratuito</span>
+                              )}
+                          </div>
+                          </SelectItem>
+                      ))}
+                      </SelectContent>
+                  </Select>
+                  </div>
+              </div>
+              {availableProviders.length === 0 && (
+                  <p className="text-xs text-amber-600">⚠️ Configure um provedor de IA nas configurações</p>
+              )}
+              </div>
+          </div>
+          )}
 
       {/* Upload Step */}
       {step === 'upload' && (

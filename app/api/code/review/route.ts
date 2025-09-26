@@ -5,27 +5,18 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { AIOrchestrator } from '@/lib/orchestrator';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticação
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Token de autorização necessário' },
-        { status: 401 }
-      );
+    // Verificar autenticação usando cookies (como outras APIs)
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Token não encontrado' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
     const analysisRequest: CodeAnalysisRequest = await request.json();
     
     // Validar request
@@ -43,14 +34,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Realizar análise via AIOrchestrator
-   const result = await AIOrchestrator.analyzeCode(
-        analysisRequest.code,
-        'review',
-        decoded.userId,
-        undefined, // debugContext não usado no review
-        undefined // providerPreference
-        );
+    // Realizar análise via AIOrchestrator com provider preference
+    const result = await AIOrchestrator.analyzeCode(
+      analysisRequest.code,
+      'review',
+      decoded.userId,
+      undefined, // debugContext não usado no review
+      analysisRequest.providerPreference
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -82,7 +73,7 @@ export async function POST(request: NextRequest) {
           provider: result.provider,
           model: result.model,
           tokensUsed: result.tokensUsed,
-          processingTime: Date.now() // Simplificado
+          processingTime: Date.now()
         }
       })
       .select()
@@ -101,10 +92,10 @@ export async function POST(request: NextRequest) {
       analysis: savedAnalysis
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no code review:', error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: error.message || 'Erro interno do servidor' },
       { status: 500 }
     );
   }

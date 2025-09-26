@@ -1,7 +1,8 @@
-// types/codeAnalysis.ts
+
 export interface CodeAnalysisRequest {
   code: string;
   analysisType: 'debug' | 'review';
+  providerPreference?: 'groq' | 'arcee';
   debugContext?: {
     errorMessage?: string;
     errorType?: string;
@@ -10,7 +11,6 @@ export interface CodeAnalysisRequest {
     environment?: string;
   };
 }
-
 export interface CodeAnalysisResult {
   id: string;
   userId: string;
