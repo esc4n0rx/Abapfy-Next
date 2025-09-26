@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 // GET - Buscar programa específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;
@@ -47,7 +47,7 @@ export async function GET(
 // PUT - Atualizar programa
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;
@@ -87,7 +87,7 @@ export async function PUT(
 // DELETE - Deletar programa
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;

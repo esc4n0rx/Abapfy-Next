@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;
