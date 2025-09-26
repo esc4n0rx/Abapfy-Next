@@ -3,14 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // GET - Buscar programa específico
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
-) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -18,7 +19,7 @@ export async function GET(
     }
 
     const decoded = verifyToken(token);
-    const { id } = params;
+    const { id } = await context.params;
 
     const { data: program, error } = await supabaseAdmin
       .from('abap_programs')
@@ -45,10 +46,7 @@ export async function GET(
 }
 
 // PUT - Atualizar programa
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
-) {
+export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -56,7 +54,7 @@ export async function PUT(
     }
 
     const decoded = verifyToken(token);
-    const { id } = params;
+    const { id } = await context.params;
     const body = await request.json();
 
     const { data: program, error } = await supabaseAdmin
@@ -85,10 +83,7 @@ export async function PUT(
 }
 
 // DELETE - Deletar programa
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
-) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -96,7 +91,7 @@ export async function DELETE(
     }
 
     const decoded = verifyToken(token);
-    const { id } = params;
+    const { id } = await context.params;
 
     const { error } = await supabaseAdmin
       .from('abap_programs')

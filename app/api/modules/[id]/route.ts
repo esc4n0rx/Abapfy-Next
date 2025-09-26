@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
-) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -17,7 +18,7 @@ export async function DELETE(
     }
 
     const decoded = verifyToken(token);
-    const moduleId = params.id;
+    const { id: moduleId } = await context.params;
 
     // Verificar se o módulo existe e pertence ao usuário
     const { data: module } = await supabaseAdmin
@@ -64,10 +65,7 @@ export async function DELETE(
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -75,7 +73,7 @@ export async function GET(
     }
 
     const decoded = verifyToken(token);
-    const moduleId = params.id;
+    const { id: moduleId } = await context.params;
 
     // Buscar módulo (próprio ou público)
     const { data: module, error } = await supabaseAdmin

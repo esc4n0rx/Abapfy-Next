@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } } // <- CORREÇÃO APLICADA AQUI
-) {
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -21,7 +22,7 @@ export async function GET(
       );
     }
 
-    const analysisId = params.id;
+    const { id: analysisId } = await context.params;
 
     // Buscar análise específica
     const { data: analysis, error } = await supabaseAdmin
