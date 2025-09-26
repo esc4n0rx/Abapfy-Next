@@ -7,30 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CodeDebugCard } from '@/components/code/CodeDebugCard';
+import { StatsCards } from '@/components/dashboard/StatsCards';
+import { RecentAccess } from '@/components/dashboard/RecentAccess';
 
-const recentTools = [
-  {
-    title: 'ZCL_MY_CLASS',
-    description: 'Classe de utilitários',
-    iconName: 'Package',
-    href: '/modulos/ZCL_MY_CLASS',
-    lastAccess: '2 horas atrás'
-  },
-  {
-    title: 'ZPROGRAM_SALES',
-    description: 'Report de vendas mensais',
-    iconName: 'Code',
-    href: '/programas/ZPROGRAM_SALES',
-    lastAccess: '5 horas atrás'
-  },
-  {
-    title: 'Debug Session #1',
-    description: 'Sessão de debug ativa',
-    iconName: 'Bug',
-    href: '/debugger',
-    lastAccess: '1 dia atrás'
-  }
-];
 
 const allTools = [
   {
@@ -47,13 +26,6 @@ const allTools = [
     href: '/modulos',
     category: 'Desenvolvimento'
   }
-];
-
-const quickStats = [
-  { label: 'Programas Criados', value: '24', trend: '+12%' },
-  { label: 'Módulos Ativos', value: '8', trend: '+2' },
-  { label: 'Reviews Realizados', value: '15', trend: '+5%' },
-  { label: 'Bugs Corrigidos', value: '42', trend: '+18' }
 ];
 
 export default function DashboardPage() {
@@ -86,44 +58,15 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {quickStats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-sm font-medium ${
-                      stat.trend.startsWith('+') 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
-                    }`}>
-                      {stat.trend}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {/* Recent Tools */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Acessos Recentes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {recentTools.map((tool, index) => (
-              <ToolCard index={0} key={index} {...tool} />
-            ))}
-          </div>
-        </div>
+        <StatsCards />
+      </div>
 
-        {/* All Tools */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Acessos Recentes</h2>
+        <RecentAccess />
+      </div>
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Ferramentas Disponíveis</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
