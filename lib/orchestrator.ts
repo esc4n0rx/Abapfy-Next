@@ -8,12 +8,13 @@ import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 import { DebugPrompts } from './prompts/debug';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
-import { SystemGuard } from '@/lib/system-guard';
+import { GuardPayload, SystemGuard } from '@/lib/system-guard';
 
 export interface GenerationRequest {
   context: PromptContext;
   providerPreference?: ProviderType;
   request: NextRequest;
+  guardPayload: GuardPayload;
 }
 
 export interface GenerationResult {
@@ -58,7 +59,7 @@ export class AIOrchestrator {
         }
       ];
 
-      const guardCheck = await SystemGuard.validateContext(decoded.userId, messages);
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, request.guardPayload);
       if (!guardCheck.approved) {
         return {
           success: false,
@@ -174,7 +175,19 @@ static async analyzeCode(
       }
     ];
 
-    const guardCheck = await SystemGuard.validateContext(userId, messages);
+    const guardPayload: GuardPayload =
+      analysisType === 'debug'
+        ? {
+            type: 'debug_analysis',
+            code,
+            debugContext,
+          }
+        : {
+            type: 'code_review',
+            code,
+          };
+
+    const guardCheck = await SystemGuard.validateContext(userId, guardPayload);
     if (!guardCheck.approved) {
       return {
         success: false,
@@ -259,7 +272,8 @@ static async analyzeCode(
         }
       ];
 
-      const guardCheck = await SystemGuard.validateContext(decoded.userId, messages);
+      const guardPayload = request.guardPayload;
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, guardPayload);
       if (!guardCheck.approved) {
         return {
           success: false,

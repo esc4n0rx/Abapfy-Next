@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { AIOrchestrator } from '@/lib/orchestrator';
 import { GenerateProgramRequest } from '@/types/programs';
+import { GuardPayload } from '@/lib/system-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token não encontrado' }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
+    verifyToken(token);
     const body: GenerateProgramRequest = await request.json();
 
     const { 
@@ -36,9 +37,13 @@ export async function POST(request: NextRequest) {
 
     // Preparar contexto para o orquestrador
     const context = {
+      name,
       description,
-      moduleType: programType, // Add moduleType as required by PromptContext
-      additionalContext: specification,
+      moduleType: programType,
+      programType,
+      programContext,
+      specification,
+      additionalContext: programContext?.customLogic,
       userPreferences: {
         useModernSyntax: userPreferences?.useModernSyntax ?? true,
         includeErrorHandling: userPreferences?.includeErrorHandling ?? true,
@@ -47,11 +52,23 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    const guardPayload: GuardPayload = {
+      type: 'program_generation',
+      name,
+      programType,
+      description,
+      programContext,
+      specification,
+      additionalContext: programContext?.customLogic,
+      userPreferences: context.userPreferences,
+    };
+
     // Gerar código usando o orquestrador
     const result = await AIOrchestrator.generateProgram({
       context,
       providerPreference: providerPreference as any,
       request,
+      guardPayload,
     });
 
     if (!result.success) {
