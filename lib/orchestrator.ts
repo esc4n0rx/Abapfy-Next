@@ -8,6 +8,7 @@ import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 import { DebugPrompts } from './prompts/debug';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
+import { SystemGuard } from '@/lib/system-guard';
 
 export interface GenerationRequest {
   context: PromptContext;
@@ -22,6 +23,7 @@ export interface GenerationResult {
   model?: string;
   tokensUsed?: number;
   error?: string;
+  guardRejected?: boolean;
 }
 
 export class AIOrchestrator {
@@ -55,6 +57,15 @@ export class AIOrchestrator {
           content: promptData.userPrompt
         }
       ];
+
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, messages);
+      if (!guardCheck.approved) {
+        return {
+          success: false,
+          error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+          guardRejected: true,
+        };
+      }
 
       // 4. Tentar providers em ordem de preferência
       const providers = this.getProviderPriority(request.providerPreference);
@@ -163,6 +174,15 @@ static async analyzeCode(
       }
     ];
 
+    const guardCheck = await SystemGuard.validateContext(userId, messages);
+    if (!guardCheck.approved) {
+      return {
+        success: false,
+        error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+        guardRejected: true,
+      };
+    }
+
     // 3. Tentar providers em ordem de preferência
     const providers = this.getProviderPriority(providerPreference);
     
@@ -238,6 +258,15 @@ static async analyzeCode(
           content: promptData.userPrompt
         }
       ];
+
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, messages);
+      if (!guardCheck.approved) {
+        return {
+          success: false,
+          error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+          guardRejected: true,
+        };
+      }
 
       // 4. Tentar providers em ordem de preferência
       const providers = this.getProviderPriority(request.providerPreference);

@@ -16,6 +16,7 @@ import { ChevronLeft, Sparkles } from 'lucide-react';
 import { MODULE_TYPES } from '@/lib/prompts/abap';
 import { ModuleGenerationResult } from '@/types/modules';
 import { useProviders } from '@/hooks/useProviders';
+import { GuardBlockModal } from '@/components/security/GuardBlockModal';
 
 type FlowStep = 'select' | 'configure' | 'generating' | 'result';
 
@@ -36,6 +37,8 @@ export function CreateModuleFlow({ onClose, onModuleCreated }: CreateModuleFlowP
   const [providerPreference, setProviderPreference] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<ModuleGenerationResult | null>(null);
+  const [isGuardModalOpen, setIsGuardModalOpen] = useState(false);
+  const [guardMessage, setGuardMessage] = useState('');
 
   const selectedModuleType = MODULE_TYPES.find(t => t.id === selectedType);
   const availableProviders = providers.filter(p => p.isEnabled && p.apiKey);
@@ -67,9 +70,18 @@ export function CreateModuleFlow({ onClose, onModuleCreated }: CreateModuleFlowP
         }),
       });
 
-      const result = await response.json();
+      const result: ModuleGenerationResult = await response.json();
+
+      if (!response.ok && (response.status === 403 || result.guardRejected)) {
+        setGuardMessage(result.error || 'Solicitação bloqueada pelo guardião do sistema.');
+        setIsGuardModalOpen(true);
+        setIsGenerating(false);
+        setCurrentStep('configure');
+        return;
+      }
+
       setGenerationResult(result);
-      
+
       setTimeout(() => {
         setIsGenerating(false);
         setCurrentStep('result');
@@ -294,8 +306,16 @@ Exemplo: "Criar um módulo de função que calcule o desconto de um produto base
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {renderStepContent()}
-    </div>
+    <>
+      <div className="max-w-4xl mx-auto">
+        {renderStepContent()}
+      </div>
+
+      <GuardBlockModal
+        isOpen={isGuardModalOpen}
+        onClose={() => setIsGuardModalOpen(false)}
+        message={guardMessage}
+      />
+    </>
   );
 }

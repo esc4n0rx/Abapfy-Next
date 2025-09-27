@@ -46,10 +46,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      const status = result.guardRejected ? 403 : 400;
       return NextResponse.json({
         success: false,
-        error: result.error
-      }, { status: 400 });
+        error: result.error,
+        guardRejected: result.guardRejected ?? false,
+      }, { status });
     }
 
     // Calcular custo estimado (se aplicável)

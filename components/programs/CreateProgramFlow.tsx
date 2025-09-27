@@ -18,6 +18,7 @@ import { ChevronLeft, Sparkles, Upload, FileText } from 'lucide-react';
 import { PROGRAM_TYPES } from '@/lib/prompts/programs';
 import { ProgramGenerationResult } from '@/types/programs';
 import { useProviders } from '@/hooks/useProviders';
+import { GuardBlockModal } from '@/components/security/GuardBlockModal';
 
 type FlowStep = 
   | 'method' 
@@ -56,9 +57,11 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
   const [includeDocumentation, setIncludeDocumentation] = useState(true);
   const [includePerformanceOptimizations, setIncludePerformanceOptimizations] = useState(true);
   const [providerPreference, setProviderPreference] = useState('');
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<ProgramGenerationResult | null>(null);
+  const [isGuardModalOpen, setIsGuardModalOpen] = useState(false);
+  const [guardMessage, setGuardMessage] = useState('');
 
   const selectedProgramType = PROGRAM_TYPES.find(t => t.id === selectedType);
   const availableProviders = providers.filter(p => p.isEnabled && p.apiKey);
@@ -92,7 +95,14 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
         }),
       });
 
-      const result = await response.json();
+      const result: ProgramGenerationResult = await response.json();
+
+      if (!response.ok && (response.status === 403 || result.guardRejected)) {
+        setGuardMessage(result.error || 'Solicitação bloqueada pelo guardião do sistema.');
+        setIsGuardModalOpen(true);
+        setCurrentStep('configure');
+        return;
+      }
 
       if (result.success) {
         setGenerationResult(result);
@@ -474,8 +484,16 @@ export function CreateProgramFlow({ onClose, onProgramCreated, initialType }: Cr
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {renderStepContent()}
-    </div>
+    <>
+      <div className="max-w-4xl mx-auto">
+        {renderStepContent()}
+      </div>
+
+      <GuardBlockModal
+        isOpen={isGuardModalOpen}
+        onClose={() => setIsGuardModalOpen(false)}
+        message={guardMessage}
+      />
+    </>
   );
 }
