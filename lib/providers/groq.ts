@@ -71,7 +71,6 @@ export class GroqProvider {
         max_completion_tokens: maxTokens,
         top_p: topP,
         stream,
-        reasoning_effort: 'default',
         stop: null,
       });
 
@@ -128,7 +127,6 @@ export class GroqProvider {
         max_completion_tokens: maxTokens,
         top_p: topP,
         stream: true,
-        reasoning_effort: 'default',
         stop: null,
       });
 
