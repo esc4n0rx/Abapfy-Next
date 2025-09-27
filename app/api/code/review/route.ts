@@ -44,9 +44,13 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
+      const status = result.guardRejected ? 403 : 500;
       return NextResponse.json(
-        { error: result.error || 'Erro na análise' },
-        { status: 500 }
+        {
+          error: result.error || 'Erro na análise',
+          guardRejected: result.guardRejected ?? false,
+        },
+        { status }
       );
     }
     

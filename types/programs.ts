@@ -81,6 +81,7 @@ export interface ProgramGenerationResult {
   tokensUsed?: number;
   error?: string;
   estimatedCost?: number;
+  guardRejected?: boolean;
 }
 
 export interface ProgramStats {

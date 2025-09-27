@@ -11,6 +11,7 @@ import { CodeAnalysisRequest, CodeAnalysisResult } from '@/types/codeAnalysis';
 import { useProviders } from '@/hooks/useProviders';
 import { ProviderType } from '@/types/providers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { GuardBlockModal } from '@/components/security/GuardBlockModal';
 
 interface CodeReviewFlowProps {
   onBack: () => void;
@@ -22,6 +23,8 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
   const [filename, setFilename] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<CodeAnalysisResult | null>(null);
+  const [isGuardModalOpen, setIsGuardModalOpen] = useState(false);
+  const [guardMessage, setGuardMessage] = useState('');
   const { providers } = useProviders();
   const [providerPreference, setProviderPreference] = useState<ProviderType>('groq');
   const availableProviders = providers.filter(p => p.isEnabled && p.apiKey);
@@ -49,13 +52,21 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
         body: JSON.stringify(request)
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setResults(result.analysis);
-        setStep('results');
-      } else {
-        throw new Error('Erro na análise');
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403 || result.guardRejected) {
+          setGuardMessage(result.error || 'Solicitação bloqueada pelo guardião do sistema.');
+          setIsGuardModalOpen(true);
+          setStep('upload');
+          return;
+        }
+
+        throw new Error(result.error || 'Erro na análise');
       }
+
+      setResults(result.analysis);
+      setStep('results');
     } catch (error) {
       console.error('Erro:', error);
       // TODO: Handle error properly
@@ -67,7 +78,8 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
   const canAnalyze = code.trim().length > 0;
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -184,6 +196,13 @@ export function CodeReviewFlow({ onBack }: CodeReviewFlowProps) {
           }}
         />
       )}
-    </div>
+      </div>
+
+      <GuardBlockModal
+        isOpen={isGuardModalOpen}
+        onClose={() => setIsGuardModalOpen(false)}
+        message={guardMessage}
+      />
+    </>
   );
 }

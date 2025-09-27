@@ -57,6 +57,7 @@ export interface ModuleGenerationResult {
   tokensUsed?: number;
   error?: string;
   estimatedCost?: number;
+  guardRejected?: boolean;
 }
 
 export interface ModuleStats {

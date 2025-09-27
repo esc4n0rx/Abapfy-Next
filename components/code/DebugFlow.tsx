@@ -15,6 +15,7 @@ import { AnalysisResults } from './AnalysisResults';
 import { CodeAnalysisRequest, CodeAnalysisResult } from '@/types/codeAnalysis';
 import { useProviders } from '@/hooks/useProviders';
 import { ProviderType } from '@/types/providers';
+import { GuardBlockModal } from '@/components/security/GuardBlockModal';
 
 interface DebugFlowProps {
   onBack: () => void;
@@ -26,6 +27,8 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
   const [filename, setFilename] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<CodeAnalysisResult | null>(null);
+  const [isGuardModalOpen, setIsGuardModalOpen] = useState(false);
+  const [guardMessage, setGuardMessage] = useState('');
 
   const { providers } = useProviders();
   const [providerPreference, setProviderPreference] = useState<ProviderType>('groq');
@@ -65,17 +68,25 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
     const response = await fetch('/api/code/debug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // Manter somente isto, remover Authorization header
+      credentials: 'include',
       body: JSON.stringify(request)
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      setResults(result.analysis);
-      setStep('results');
-    } else {
-      throw new Error('Erro na análise');
+    const result = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 403 || result.guardRejected) {
+        setGuardMessage(result.error || 'Solicitação bloqueada pelo guardião do sistema.');
+        setIsGuardModalOpen(true);
+        setStep('context');
+        return;
+      }
+
+      throw new Error(result.error || 'Erro na análise');
     }
+
+    setResults(result.analysis);
+    setStep('results');
   } catch (error) {
     console.error('Erro:', error);
     // TODO: Handle error properly
@@ -88,7 +99,8 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
   const canAnalyze = errorMessage.trim().length > 0 || flowDescription.trim().length > 0;
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -302,6 +314,13 @@ export function DebugFlow({ onBack }: DebugFlowProps) {
           }}
         />
       )}
-    </div>
+      </div>
+
+      <GuardBlockModal
+        isOpen={isGuardModalOpen}
+        onClose={() => setIsGuardModalOpen(false)}
+        message={guardMessage}
+      />
+    </>
   );
 }

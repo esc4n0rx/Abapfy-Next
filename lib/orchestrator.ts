@@ -8,11 +8,13 @@ import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 import { DebugPrompts } from './prompts/debug';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
+import { GuardPayload, SystemGuard } from '@/lib/system-guard';
 
 export interface GenerationRequest {
   context: PromptContext;
   providerPreference?: ProviderType;
   request: NextRequest;
+  guardPayload: GuardPayload;
 }
 
 export interface GenerationResult {
@@ -22,6 +24,7 @@ export interface GenerationResult {
   model?: string;
   tokensUsed?: number;
   error?: string;
+  guardRejected?: boolean;
 }
 
 export class AIOrchestrator {
@@ -55,6 +58,15 @@ export class AIOrchestrator {
           content: promptData.userPrompt
         }
       ];
+
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, request.guardPayload);
+      if (!guardCheck.approved) {
+        return {
+          success: false,
+          error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+          guardRejected: true,
+        };
+      }
 
       // 4. Tentar providers em ordem de preferência
       const providers = this.getProviderPriority(request.providerPreference);
@@ -163,6 +175,27 @@ static async analyzeCode(
       }
     ];
 
+    const guardPayload: GuardPayload =
+      analysisType === 'debug'
+        ? {
+            type: 'debug_analysis',
+            code,
+            debugContext,
+          }
+        : {
+            type: 'code_review',
+            code,
+          };
+
+    const guardCheck = await SystemGuard.validateContext(userId, guardPayload);
+    if (!guardCheck.approved) {
+      return {
+        success: false,
+        error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+        guardRejected: true,
+      };
+    }
+
     // 3. Tentar providers em ordem de preferência
     const providers = this.getProviderPriority(providerPreference);
     
@@ -238,6 +271,16 @@ static async analyzeCode(
           content: promptData.userPrompt
         }
       ];
+
+      const guardPayload = request.guardPayload;
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, guardPayload);
+      if (!guardCheck.approved) {
+        return {
+          success: false,
+          error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+          guardRejected: true,
+        };
+      }
 
       // 4. Tentar providers em ordem de preferência
       const providers = this.getProviderPriority(request.providerPreference);

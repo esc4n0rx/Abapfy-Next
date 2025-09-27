@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { AIOrchestrator } from '@/lib/orchestrator';
 import { GenerateModuleRequest } from '@/types/modules';
+import { GuardPayload } from '@/lib/system-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token não encontrado' }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
+    verifyToken(token);
     const body: GenerateModuleRequest = await request.json();
 
     const { moduleType, description, additionalContext, userPreferences, providerPreference } = body;
@@ -38,18 +39,29 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    const guardPayload: GuardPayload = {
+      type: 'module_generation',
+      moduleType,
+      description,
+      additionalContext,
+      userPreferences: context.userPreferences,
+    };
+
     // Gerar código usando o orquestrador
     const result = await AIOrchestrator.generateModule({
       context,
       providerPreference: providerPreference as any,
       request,
+      guardPayload,
     });
 
     if (!result.success) {
+      const status = result.guardRejected ? 403 : 400;
       return NextResponse.json({
         success: false,
-        error: result.error
-      }, { status: 400 });
+        error: result.error,
+        guardRejected: result.guardRejected ?? false,
+      }, { status });
     }
 
     // Calcular custo estimado (se aplicável)
