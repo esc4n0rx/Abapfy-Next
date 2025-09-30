@@ -37,7 +37,7 @@ export function SpecificationViewer({
 }: SpecificationViewerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const specificationText = useMemo(() => result.specification || result.code || '', [result]);
+  const specificationText = useMemo(() => result.specification || '', [result]);
 
   const handleDownload = async () => {
     if (!specificationText) return;
