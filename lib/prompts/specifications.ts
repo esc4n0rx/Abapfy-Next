@@ -1,12 +1,6 @@
 // lib/prompts/specifications.ts
 import { GeneratedPrompt, PromptContext } from './index';
-
-type SpecificationPreferences = {
-  includeArchitecture?: boolean;
-  includeDataDictionary?: boolean;
-  includeTestPlan?: boolean;
-  includeImplementationRoadmap?: boolean;
-};
+import { SpecificationPreferences } from '@/types/specifications';
 
 interface SpecificationContext extends PromptContext {
   name: string;
@@ -26,7 +20,6 @@ interface SpecificationContext extends PromptContext {
     acceptanceCriteria?: string[];
     additionalNotes?: string;
   };
-  userPreferences?: SpecificationPreferences;
 }
 
 export class SpecificationPrompts {
@@ -98,12 +91,12 @@ Sempre retorne uma documentação formatada em texto estruturado, com títulos, 
       ? `\nObservações Adicionais:\n${context.projectContext.additionalNotes}`
       : '';
 
-    const preferences = context.userPreferences
+    const preferences = context.specificationPreferences
       ? `\nPreferências de Documentação:\n${[
-          context.userPreferences.includeArchitecture ? '- Incluir visão de arquitetura e componentes técnicos' : null,
-          context.userPreferences.includeDataDictionary ? '- Incluir dicionário de dados detalhado' : null,
-          context.userPreferences.includeTestPlan ? '- Incluir plano de testes completo' : null,
-          context.userPreferences.includeImplementationRoadmap ? '- Incluir roadmap macro de implementação' : null,
+          context.specificationPreferences.includeArchitecture ? '- Incluir visão de arquitetura e componentes técnicos' : null,
+          context.specificationPreferences.includeDataDictionary ? '- Incluir dicionário de dados detalhado' : null,
+          context.specificationPreferences.includeTestPlan ? '- Incluir plano de testes completo' : null,
+          context.specificationPreferences.includeImplementationRoadmap ? '- Incluir roadmap macro de implementação' : null,
         ]
           .filter(Boolean)
           .join('\n')}`

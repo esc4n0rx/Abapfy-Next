@@ -1,3 +1,5 @@
+import { SpecificationPreferences } from '@/types/specifications';
+
 export * from './abap';
 export * from './programs';
 export * from './debug';
@@ -13,6 +15,7 @@ export interface PromptContext {
     includeDocumentation?: boolean;
     includePerformanceOptimizations?: boolean;
   };
+  specificationPreferences?: SpecificationPreferences;
   name?: string;
   programType?: string;
   programContext?: {

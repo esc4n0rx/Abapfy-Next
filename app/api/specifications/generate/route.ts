@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         acceptanceCriteria,
         additionalNotes,
       },
-      userPreferences: preferences,
+      specificationPreferences: preferences,
     };
 
     const guardPreferences = preferences
