@@ -68,6 +68,15 @@ export async function POST(request: NextRequest) {
       userPreferences: preferences,
     };
 
+    const guardPreferences = preferences
+      ? Object.entries(preferences).reduce<Record<string, unknown>>((acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {})
+      : undefined;
+
     const guardPayload: GuardPayload = {
       type: 'specification_generation',
       projectName,
@@ -85,7 +94,7 @@ export async function POST(request: NextRequest) {
       deliveryPhases,
       acceptanceCriteria,
       additionalNotes,
-      preferences,
+      preferences: guardPreferences,
     };
 
     const result = await AIOrchestrator.generateSpecification({
