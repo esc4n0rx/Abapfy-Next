@@ -25,6 +25,13 @@ const allTools = [
     iconName: 'Package',
     href: '/modulos',
     category: 'Desenvolvimento'
+  },
+  {
+    title: 'Gerador de Especificações',
+    description: 'Monte documentos funcionais e técnicos completos com IA protegida pelo guardião.',
+    iconName: 'FileText',
+    href: '/especificacoes',
+    category: 'Arquitetura'
   }
 ];
 

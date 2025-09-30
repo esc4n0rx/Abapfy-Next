@@ -1,4 +1,4 @@
-import { ABAPPrompts, ProgramPrompts, PromptContext } from '@/lib/prompts';
+import { ABAPPrompts, ProgramPrompts, PromptContext, SpecificationPrompts } from '@/lib/prompts';
 import { ChatMessage, ProviderResponse, ProviderType } from '@/types/providers';
 import { CodeProcessor } from '@/lib/utils/codeProcessor';
 import { GroqProvider } from '@/lib/providers/groq';
@@ -20,6 +20,7 @@ export interface GenerationRequest {
 export interface GenerationResult {
   success: boolean;
   code?: string;
+  content?: string;
   provider?: ProviderType;
   model?: string;
   tokensUsed?: number;
@@ -341,7 +342,89 @@ static async analyzeCode(
     }
   }
 
-  
+
+  /**
+   * Orquestra a geração de especificações funcionais/técnicas
+   */
+  static async generateSpecification(request: GenerationRequest): Promise<GenerationResult> {
+    try {
+      const token = request.request.cookies.get('auth-token')?.value;
+      if (!token) {
+        return {
+          success: false,
+          error: 'Token não encontrado'
+        };
+      }
+
+      const decoded = verifyToken(token);
+
+      const promptData = SpecificationPrompts.getPrompt(request.context as any);
+
+      const messages: ChatMessage[] = [
+        {
+          role: 'system',
+          content: promptData.systemPrompt,
+        },
+        {
+          role: 'user',
+          content: promptData.userPrompt,
+        },
+      ];
+
+      const guardCheck = await SystemGuard.validateContext(decoded.userId, request.guardPayload);
+      if (!guardCheck.approved) {
+        return {
+          success: false,
+          error: guardCheck.message || 'Solicitação bloqueada pelo guardião do sistema.',
+          guardRejected: true,
+        };
+      }
+
+      const providers = this.getProviderPriority(request.providerPreference);
+
+      for (const provider of providers) {
+        try {
+          const result = await this.tryProvider(
+            provider,
+            messages,
+            {
+              temperature: promptData.temperature,
+              maxTokens: promptData.maxTokens,
+            },
+            decoded.userId
+          );
+
+          if (result.success && (result.content || result.code)) {
+            this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
+              .catch(console.error);
+
+            return {
+              ...result,
+              content: result.content || result.code,
+              code: result.content || result.code,
+            };
+          }
+        } catch (error: any) {
+          console.warn(`Provider ${provider} failed:`, error.message);
+          continue;
+        }
+      }
+
+      return {
+        success: false,
+        error: 'Nenhum provider de IA disponível ou configurado'
+      };
+
+    } catch (error: any) {
+      console.error('Erro na geração de especificação:', error);
+      return {
+        success: false,
+        error: `Erro na geração: ${error.message}`
+      };
+    }
+  }
+
+
   /**
    * Define a ordem de prioridade dos providers
    */
@@ -405,6 +488,7 @@ static async analyzeCode(
       return {
         success: true,
         code: response.content,
+        content: response.content,
         provider,
         model: response.model,
         tokensUsed: response.tokensUsed,

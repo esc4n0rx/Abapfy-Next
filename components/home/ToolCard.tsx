@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Code, Package, Bug, FileSearch, type LucideIcon } from 'lucide-react';
+import { Code, Package, Bug, FileSearch, FileText, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -9,6 +9,7 @@ const iconMap: Record<string, LucideIcon> = {
   Package,
   Bug,
   FileSearch,
+  FileText,
 };
 
 interface ToolCardProps {
@@ -22,7 +23,7 @@ interface ToolCardProps {
 
 export function ToolCard({ title, description, iconName, href, index, isSmall = false }: ToolCardProps) {
   const router = useRouter();
-  const Icon = iconMap[iconName];
+  const Icon = iconMap[iconName] ?? Code;
 
   if (isSmall) {
     return (
