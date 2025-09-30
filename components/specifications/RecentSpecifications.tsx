@@ -166,7 +166,7 @@ export function RecentSpecifications({ refreshKey }: RecentSpecificationsProps) 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={selectedSpecification?.projectName || 'Especificação'}
-        size="3xl"
+        size="2xl"
       >
         <div className="space-y-4">
           {selectedSpecification && (

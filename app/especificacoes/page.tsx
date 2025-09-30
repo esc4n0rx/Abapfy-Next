@@ -159,7 +159,7 @@ export default function EspecificacoesPage() {
         isOpen={showModal}
         onClose={() => { setShowModal(false); setSelectedTemplate(undefined); }}
         title="Nova Especificação"
-        size="3xl"
+        size="2xl"
       >
         <CreateSpecificationFlow
           onClose={() => { setShowModal(false); setSelectedTemplate(undefined); }}
