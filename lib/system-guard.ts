@@ -21,6 +21,25 @@ export type GuardPayload =
       userPreferences?: Record<string, unknown>;
     }
   | {
+      type: 'specification_generation';
+      projectName: string;
+      projectType?: string;
+      summary: string;
+      objectives?: string[];
+      tables?: string[];
+      businessRules?: string[];
+      flows?: string[];
+      integrations?: string[];
+      stakeholders?: string[];
+      technicalStack?: string[];
+      nonFunctionalRequirements?: string[];
+      constraints?: string[];
+      deliveryPhases?: string[];
+      acceptanceCriteria?: string[];
+      additionalNotes?: string;
+      preferences?: Record<string, unknown>;
+    }
+  | {
       type: 'debug_analysis';
       code: string;
       debugContext?: Record<string, unknown>;

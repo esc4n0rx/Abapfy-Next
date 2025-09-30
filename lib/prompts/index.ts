@@ -1,6 +1,7 @@
 export * from './abap';
 export * from './programs';
 export * from './debug';
+export * from './specifications';
 
 export interface PromptContext {
   description: string;
@@ -22,6 +23,22 @@ export interface PromptContext {
     customLogic?: string;
   };
   specification?: string;
+  summary?: string;
+  projectType?: string;
+  projectContext?: {
+    objectives?: string[];
+    tables?: string[];
+    businessRules?: string[];
+    flows?: string[];
+    integrations?: string[];
+    stakeholders?: string[];
+    technicalStack?: string[];
+    nonFunctionalRequirements?: string[];
+    constraints?: string[];
+    deliveryPhases?: string[];
+    acceptanceCriteria?: string[];
+    additionalNotes?: string;
+  };
 }
 
 export interface GeneratedPrompt {
