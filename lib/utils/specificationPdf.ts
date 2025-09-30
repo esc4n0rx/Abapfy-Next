@@ -1,5 +1,6 @@
 // lib/utils/specificationPdf.ts
 import { ProjectSpecificationContext, SpecificationPreferences } from '@/types/specifications';
+import { SpecificationProcessor } from '@/lib/utils/specificationProcessor';
 
 interface SpecificationPdfMetadata {
   provider?: string;
@@ -86,7 +87,9 @@ function parseSpecification(specification: string): Section[] {
 
   const flushParagraph = () => {
     if (currentParagraph.trim()) {
-      currentSection.paragraphs.push(currentParagraph.trim());
+      currentSection.paragraphs.push(
+        SpecificationProcessor.stripInlineFormatting(currentParagraph.trim())
+      );
       currentParagraph = '';
     }
   };
@@ -109,16 +112,20 @@ function parseSpecification(specification: string): Section[] {
 
     if (isHeading(line)) {
       flushSection();
-      const normalized = line
-        .replace(/^#+\s*/, '')
-        .replace(/^\d+(?:\.\d+)*\s*/, '')
-        .replace(/:$/, '')
-        .trim();
-      currentSection.title = normalized || line;
+      const normalized = SpecificationProcessor.stripInlineFormatting(
+        line
+          .replace(/^#+\s*/, '')
+          .replace(/^\d+(?:\.\d+)*\s*/, '')
+          .replace(/:$/, '')
+          .trim()
+      );
+      currentSection.title = normalized || SpecificationProcessor.stripInlineFormatting(line);
       continue;
     }
 
-    currentParagraph = currentParagraph ? `${currentParagraph} ${line}` : line;
+    currentParagraph = currentParagraph
+      ? `${currentParagraph} ${line}`
+      : line;
   }
 
   flushSection();
@@ -143,7 +150,8 @@ function formatDate(value?: string): string {
 
 export function generateSpecificationPdf(options: SpecificationPdfOptions): Uint8Array {
   const { title, projectType, summary, specification, metadata } = options;
-  const sections = parseSpecification(specification);
+  const normalizedSpecification = SpecificationProcessor.prepareForPdf(specification);
+  const sections = parseSpecification(normalizedSpecification);
 
   const pages: string[][] = [];
   let currentPage: string[] = [];
@@ -209,9 +217,11 @@ export function generateSpecificationPdf(options: SpecificationPdfOptions): Uint
   }
   currentY -= 12;
 
-  if (summary) {
+  const sanitizedSummary = SpecificationProcessor.stripInlineFormatting(summary || '');
+
+  if (sanitizedSummary) {
     addLine('Resumo Executivo', { size: HEADING_SIZE, bold: true, lineHeight: 20 });
-    addParagraph(summary);
+    addParagraph(sanitizedSummary);
   }
 
   sections.forEach((section) => {

@@ -9,6 +9,7 @@ import { NextRequest } from 'next/server';
 import { DebugPrompts } from './prompts/debug';
 import { CodeAnalysisRequest } from '@/types/codeAnalysis';
 import { GuardPayload, SystemGuard } from '@/lib/system-guard';
+import { SpecificationProcessor } from '@/lib/utils/specificationProcessor';
 
 export interface GenerationRequest {
   context: PromptContext;
@@ -398,10 +399,13 @@ static async analyzeCode(
             this.logUsage(decoded.userId, provider, result.model, result.tokensUsed || 0)
               .catch(console.error);
 
+            const rawSpecification = result.content || result.code || '';
+            const cleanedSpecification = SpecificationProcessor.cleanResponse(rawSpecification);
+
             return {
               ...result,
-              content: result.content || result.code,
-              code: result.content || result.code,
+              content: cleanedSpecification,
+              code: cleanedSpecification,
             };
           }
         } catch (error: any) {

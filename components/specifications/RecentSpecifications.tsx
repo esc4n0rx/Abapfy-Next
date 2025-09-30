@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/Modal';
 import { ProjectSpecification } from '@/types/specifications';
 import { generateSpecificationPdf } from '@/lib/utils/specificationPdf';
+import { SpecificationProcessor } from '@/lib/utils/specificationProcessor';
 
 interface RecentSpecificationsProps {
   refreshKey?: number;
@@ -52,7 +53,7 @@ export function RecentSpecifications({ refreshKey }: RecentSpecificationsProps) 
       title: spec.projectName,
       projectType: spec.projectType,
       summary: spec.summary,
-      specification: spec.specification,
+      specification: SpecificationProcessor.cleanResponse(spec.specification),
       context: spec.context,
       preferences: spec.preferences,
       metadata: spec.metadata,
@@ -191,7 +192,7 @@ export function RecentSpecifications({ refreshKey }: RecentSpecificationsProps) 
               <p className="text-sm text-gray-700 leading-relaxed">{selectedSpecification.summary}</p>
               <div className="max-h-[480px] overflow-y-auto bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">
-                  {selectedSpecification.specification}
+                  {SpecificationProcessor.cleanResponse(selectedSpecification.specification)}
                 </pre>
               </div>
             </>

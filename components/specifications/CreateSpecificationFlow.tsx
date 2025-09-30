@@ -13,6 +13,7 @@ import { SpecificationViewer } from './SpecificationViewer';
 import { GuardBlockModal } from '@/components/security/GuardBlockModal';
 import { useProviders } from '@/hooks/useProviders';
 import { ProjectSpecificationContext, SpecificationGenerationResult, SpecificationPreferences } from '@/types/specifications';
+import { SpecificationProcessor } from '@/lib/utils/specificationProcessor';
 import { Sparkles, ChevronLeft } from 'lucide-react';
 
 interface TemplateConfig {
@@ -217,7 +218,12 @@ export function CreateSpecificationFlow({ onClose, onSpecificationCreated, initi
         return;
       }
 
-      setGenerationResult(result);
+      const sanitizedSpecification = SpecificationProcessor.cleanResponse(result.specification);
+
+      setGenerationResult({
+        ...result,
+        specification: sanitizedSpecification,
+      });
       setCurrentStep('result');
     } catch (error: any) {
       alert(error.message || 'Erro ao gerar especificação.');

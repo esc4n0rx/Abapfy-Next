@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProjectSpecificationContext, SpecificationGenerationResult, SpecificationPreferences } from '@/types/specifications';
 import { generateSpecificationPdf } from '@/lib/utils/specificationPdf';
+import { SpecificationProcessor } from '@/lib/utils/specificationProcessor';
 import { Download, Share2, Save, X } from 'lucide-react';
 
 interface SpecificationViewerProps {
@@ -37,7 +38,10 @@ export function SpecificationViewer({
 }: SpecificationViewerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const specificationText = useMemo(() => result.specification || '', [result]);
+  const specificationText = useMemo(
+    () => SpecificationProcessor.cleanResponse(result.specification || ''),
+    [result.specification]
+  );
 
   const handleDownload = async () => {
     if (!specificationText) return;

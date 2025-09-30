@@ -121,9 +121,11 @@ export async function POST(request: NextRequest) {
       estimatedCost = 0.5672;
     }
 
+    const specification = result.content || result.code || '';
+
     return NextResponse.json({
       success: true,
-      specification: result.content || result.code,
+      specification,
       provider: result.provider,
       model: result.model,
       tokensUsed: result.tokensUsed,
