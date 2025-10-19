@@ -28,6 +28,13 @@ export type GuardPayload =
   | {
       type: 'code_review';
       code: string;
+    }
+  | {
+      type: 'chat_message';
+      message: string;
+      sessionTitle?: string;
+      projectName?: string;
+      previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
     };
 
 interface GuardCheckResult {

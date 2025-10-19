@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Code, Package, Bug, FileSearch, type LucideIcon } from 'lucide-react';
+import { Code, Package, Bug, FileSearch, MessageSquare, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -9,6 +9,7 @@ const iconMap: Record<string, LucideIcon> = {
   Package,
   Bug,
   FileSearch,
+  MessageSquare,
 };
 
 interface ToolCardProps {
