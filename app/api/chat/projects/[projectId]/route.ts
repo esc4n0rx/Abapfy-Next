@@ -17,7 +17,13 @@ function mapProject(record: any): ChatProject {
   };
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { projectId: string } }) {
+type ProjectRouteContext = {
+  params: {
+    projectId: string;
+  };
+};
+
+export async function PATCH(request: NextRequest, context: ProjectRouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -25,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { projec
     }
 
     const decoded = verifyToken(token);
+    const { projectId } = context.params;
     const body = await request.json();
     const updates: Record<string, any> = {};
 
@@ -48,7 +55,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { projec
     const { data, error } = await supabaseAdmin
       .from('chat_projects')
       .update(updates)
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', decoded.userId)
       .select()
       .single();
@@ -67,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { projec
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function DELETE(request: NextRequest, context: ProjectRouteContext) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -75,11 +82,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { proje
     }
 
     const decoded = verifyToken(token);
+    const { projectId } = context.params;
 
     const { error } = await supabaseAdmin
       .from('chat_projects')
       .delete()
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', decoded.userId);
 
     if (error) {
