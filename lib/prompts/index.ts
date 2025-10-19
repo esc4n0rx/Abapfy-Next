@@ -1,6 +1,7 @@
 export * from './abap';
 export * from './programs';
 export * from './debug';
+export * from './chat';
 
 export interface PromptContext {
   description: string;

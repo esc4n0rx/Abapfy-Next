@@ -25,6 +25,13 @@ const allTools = [
     iconName: 'Package',
     href: '/modulos',
     category: 'Desenvolvimento'
+  },
+  {
+    title: 'Consultor SAP (Modo Chat)',
+    description: 'Converse com a IA para tirar dúvidas sobre SPRO, ABAP e processos SAP em tempo real.',
+    iconName: 'MessageSquare',
+    href: '/chat',
+    category: 'Consultoria'
   }
 ];
 
