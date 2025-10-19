@@ -17,13 +17,10 @@ function mapProject(record: any): ChatProject {
   };
 }
 
-type ProjectRouteContext = {
-  params: {
-    projectId: string;
-  };
-};
-
-export async function PATCH(request: NextRequest, context: ProjectRouteContext) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { projectId: string } }
+) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -31,7 +28,7 @@ export async function PATCH(request: NextRequest, context: ProjectRouteContext) 
     }
 
     const decoded = verifyToken(token);
-    const { projectId } = context.params;
+    const { projectId } = params;
     const body = await request.json();
     const updates: Record<string, any> = {};
 
@@ -74,7 +71,10 @@ export async function PATCH(request: NextRequest, context: ProjectRouteContext) 
   }
 }
 
-export async function DELETE(request: NextRequest, context: ProjectRouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { projectId: string } }
+) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -82,7 +82,7 @@ export async function DELETE(request: NextRequest, context: ProjectRouteContext)
     }
 
     const decoded = verifyToken(token);
-    const { projectId } = context.params;
+    const { projectId } = params;
 
     const { error } = await supabaseAdmin
       .from('chat_projects')
